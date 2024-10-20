@@ -1,0 +1,9 @@
+# Environments
+.venv
+.env
+
+# Firebase
+firebase-service-account.json
+
+# Python
+__pycache__/

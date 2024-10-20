@@ -1,0 +1,27 @@
+ipykernel
+ipywidgets
+
+# LangChain
+langchain
+langchain-community
+langchain-text-splitters
+# langchain-google-vertexai
+langchain-google-genai
+langchain-huggingface
+pypdf
+unstructured
+
+# Vector Index
+langchain-pinecone
+pinecone-notebooks
+torch
+
+firebase-admin ~= 6.3
+
+streamlit
+watchdog
+sentence_transformers
+
+# Linting
+isort
+black
