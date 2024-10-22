@@ -1,0 +1,13 @@
+services:
+  chatbot:
+    build: .
+    ports:
+      - "8080:8080"
+    command:
+      - "streamlit"
+      - "run"
+      - "src/Home.py"
+      - "--server.port"
+      - "8080"
+    volumes:
+      - ./src:/app/src

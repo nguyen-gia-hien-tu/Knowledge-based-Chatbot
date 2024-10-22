@@ -1,7 +1,7 @@
 import streamlit as st
 from langchain_core.runnables import Runnable
 
-from utils.utils import setup_tools, setup_rag_chain
+from utils.utils import setup_rag_chain, setup_tools
 
 
 def main():
