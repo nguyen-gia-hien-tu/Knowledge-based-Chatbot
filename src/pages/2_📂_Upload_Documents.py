@@ -1,12 +1,17 @@
 import mimetypes
 import os
 import time
+import logging
 
 import streamlit as st
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 from configuration import settings
 from utils.utils import setup_embedding, setup_pinecone_index, setup_retriever
+
+
+logging.basicConfig(level=logging.ERROR)
+logger = logging.getLogger(__name__)
 
 
 def main():
@@ -20,6 +25,7 @@ def main():
             f.write(uploaded_file.getvalue())
         st.success(f"File {uploaded_file.name} uploaded successfully!")
 
+
     # List files in storage
     def list_files_in_storage():
         file_list = []
@@ -29,6 +35,7 @@ def main():
                 file_list.append(os.path.join(relative_path, file))
         return file_list
 
+
     # Display file metadata (size and upload time)
     def get_file_metadata(file_path):
         file_size = os.path.getsize(file_path)
@@ -36,14 +43,19 @@ def main():
         upload_time = time.ctime(os.path.getctime(file_path))
         return file_size, file_type, upload_time
 
+
     def setup_fresh_retriever(_index, _embedding):
-        print("*" * 100)
-        print("Setting up a fresh retriever")
+        logger.info("*" * 100)
+        logger.info("Setting up a fresh retriever")
+
+        # Clear the cache on the setup_retriever() function to let it run again
         setup_retriever.clear()
         setup_retriever(_index, _embedding)
-        print("*" * 100)
-        print("Retriever is refreshed")
-        print("*" * 100)
+
+        logger.info("*" * 100)
+        logger.info("Retriever is refreshed")
+        logger.info("*" * 100)
+
 
     # App layout
     st.title("Upload Documents")
@@ -63,12 +75,13 @@ def main():
         try:
             setup_fresh_retriever(index, embedding)
         except Exception as e:
-            st.error(f"Error: {e}")
+            logger.error(f"Error: {e}")
             os.remove(os.path.join(settings.DOCUMENTS_DIR, uploaded_file.name))
 
     # List all files in storage
     st.write("###")
     st.subheader("Uploaded Files")
+
     files = list_files_in_storage()
     if files:
         for file in files:
@@ -94,12 +107,15 @@ def main():
                 f"Delete {file}",
                 key=file,
             ):
+                # Delete the file from the storage
                 os.remove(file_path)
                 st.warning(f"{file} deleted.")
+
+                # Delete the vectors related to the file from the Pinecone index
                 try:
                     setup_fresh_retriever(index, embedding)
                 except Exception as e:
-                    st.error(f"Error: {e}")
+                    logger.error(f"Error: {e}")
                     with st.spinner("Error while deleting!!! Reverting changes..."):
                         upload_file(file)
                 st.rerun()

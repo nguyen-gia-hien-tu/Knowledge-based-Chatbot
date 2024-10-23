@@ -9,6 +9,10 @@ class Settings(BaseSettings):
 
     # Path to the knowledge documents directory
     DOCUMENTS_DIR: Path = SRC_ROOT / "documents"
+    # Vector database index name
+    VECTOR_DB_INDEX_NAME: str = "knowledge-based-chatbot-index"
+    # Record manager database URL
+    RECORD_MANAGER_DB_URL: str = "sqlite:///record_manager_cache.sql"
 
     GOOGLE_APPLICATION_CREDENTIALS: str
     FIREBASE_SERVICE_ACCOUNT_FILE: str

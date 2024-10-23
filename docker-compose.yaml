@@ -11,3 +11,5 @@ services:
       - "8080"
     volumes:
       - ./src:/app/src
+      - ./.env:/app/.env
+      - ./firebase-service-account.json:/app/firebase-service-account.json
