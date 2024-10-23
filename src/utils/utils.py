@@ -1,10 +1,12 @@
 import os
 import time
+import logging
 
 import streamlit as st
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
 from langchain.chains.retrieval import create_retrieval_chain
+from langchain.indexes import SQLRecordManager, index
 from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -15,6 +17,10 @@ from pinecone import Index, Pinecone, ServerlessSpec
 
 from configuration import settings
 from utils.firebase import initialize_firebase_app
+
+
+logging.basicConfig(level=logging.ERROR)
+logger = logging.getLogger(__name__)
 
 
 @st.cache_resource()
@@ -63,7 +69,7 @@ def setup_pinecone_index():
     pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 
     # Create a Pinecone index
-    index_name = "knowledge-based-chatbot-index"
+    index_name = settings.VECTOR_DB_INDEX_NAME
     existing_indexes = [index_info["name"] for index_info in pc.list_indexes()]
 
     if index_name not in existing_indexes:
@@ -98,11 +104,18 @@ def setup_retriever(_index: Index, _embedding: HuggingFaceBgeEmbeddings):
     # Create a vector store
     vector_store = PineconeVectorStore(index=_index, embedding=_embedding)
 
+    # Setup a record manager
+    namespace = f"pinecone/{settings.VECTOR_DB_INDEX_NAME}"
+    record_manager = SQLRecordManager(
+        namespace=namespace, db_url=settings.RECORD_MANAGER_DB_URL
+    )
+    # Create a schema before using the record manager
+    record_manager.create_schema()
+
     # Load documents
     loader = DirectoryLoader(
         path=settings.DOCUMENTS_DIR, glob="**/*.pdf", loader_cls=PyPDFLoader
     )
-
     documents = loader.load()
 
     # Create text splitter
@@ -110,19 +123,29 @@ def setup_retriever(_index: Index, _embedding: HuggingFaceBgeEmbeddings):
         chunk_size=800,
         chunk_overlap=200,
     )
-
     splits = text_splitter.split_documents(documents)
 
-    # Delete all indexes from the vector store to start fresh if any
-    results = vector_store.similarity_search_with_score("test", k=1)
-    print("*" * 100)
-    print(f"Result from querying vectors to delete all vectors: {results}")
-    if results:
-        _index.delete(delete_all=True)
+    # # Delete all indexes from the vector store to start fresh if any
+    # results = vector_store.similarity_search_with_score("test", k=1)
+    # print("*" * 100)
+    # print(f"Result from querying vectors to delete all vectors: {results}")
+    # print("*" * 100)
+    # if results:
+    #     _index.delete(delete_all=True)
 
-    # Add documents to the vector store
-    vector_store.add_documents(splits)
+    # # Add documents to the vector store
+    # vector_store.add_documents(splits)
     # vector_store.add_documents(documents)
+
+    # Setup indexing function with `full` deletion mode
+    logger.info("*" * 100)
+    logger.info("Running index function to `full` cleanup")
+    logger.info("*" * 100)
+    logger.info(f"Number of splits: {len(splits)}")
+    logger.info("*" * 100)
+    index(splits, record_manager, vector_store, cleanup="full", source_id_key="source")
+    logger.info("Finished running index function to `full` cleanup")
+    logger.info("*" * 100)
 
     # Create a retriever
     retriever = vector_store.as_retriever()
