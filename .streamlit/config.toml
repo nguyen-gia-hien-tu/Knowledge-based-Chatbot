@@ -1,0 +1,11 @@
+# Configuration for running Streamlit in a Docker container
+# https://discuss.streamlit.io/t/streamlit-doesnt-reload-site-when-code-in-container-changes/46174
+
+# This is needed for local development with docker
+[server]
+# If you don't want to start the default browser:
+headless = true
+# You will need this for local development:
+runOnSave = true
+# You will need this if running docker on windows host:
+fileWatcherType = "poll"

@@ -1,4 +1,7 @@
+import time
+
 import streamlit as st
+from utils.utils import setup_tools
 
 st.set_page_config(
     page_title="Knowledge-based Chatbot",
@@ -18,3 +21,5 @@ st.markdown(
     - To upload documents, select the "📂 Upload Documents" option from the sidebar
 """
 )
+
+setup_tools()
