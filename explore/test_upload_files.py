@@ -142,7 +142,7 @@ if uploaded_file:
 # Start Main Feature
 ################################################################################
 list_files_container = st.container(border=True)
-list_files_container.markdown(f'#### {str(st.session_state["current_folder"])}')
+list_files_container.markdown(f'### {str(st.session_state["current_folder"])}')
 list_files_container.divider()
 
 
@@ -210,7 +210,7 @@ container.button(
 
 container = cols[1].container(height=CONTAINER_HEIGHT, border=False)
 previous_folder_clicked = container.button(
-    label="..", use_container_width=True, type="primary"
+    label="../", icon=":material/folder_open:", use_container_width=True, type="primary"
 )
 if previous_folder_clicked:
     st.session_state["current_folder"] = Path(st.session_state["current_folder"]).parent
@@ -263,7 +263,8 @@ for file_or_folder_name in files_and_folders_name:
     container = cols[1].container(height=CONTAINER_HEIGHT, border=False)
     if os.path.isdir(file_path):
         folder_clicked = container.button(
-            label=truncate_filename(file_or_folder_name),
+            label=f"{truncate_filename(file_or_folder_name)}",
+            icon=":material/folder:",
             key=f"file_name_{file_path}",
             use_container_width=True,
             type="primary",
@@ -279,7 +280,8 @@ for file_or_folder_name in files_and_folders_name:
             st.rerun()
     else:
         file_clicked = container.download_button(
-            label=truncate_filename(file_or_folder_name),
+            label=f"{truncate_filename(file_or_folder_name, length=30)}",
+            icon=":material/picture_as_pdf:",
             data=open(file_path, "rb").read(),
             file_name=file_or_folder_name,
             mime=content_type,
