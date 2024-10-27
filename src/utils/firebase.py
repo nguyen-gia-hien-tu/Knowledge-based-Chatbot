@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import List
 
 import firebase_admin
@@ -66,7 +67,7 @@ def get_files_in_folder_from_storage(folder_path: str = "") -> List[Blob]:
     return [blob for blob in blobs if not blob.name.endswith("/")]
 
 
-def upload_file_to_storage(uploaded_file: UploadedFile, remote_path: str):
+def upload_file_to_storage(uploaded_file: UploadedFile | Path, remote_path: str):
     """Function to upload file to a folder in Firebase Storage
 
     Args:
@@ -75,7 +76,10 @@ def upload_file_to_storage(uploaded_file: UploadedFile, remote_path: str):
     """
     bucket = storage.bucket()
     blob = bucket.blob(remote_path)
-    blob.upload_from_file(uploaded_file, content_type=uploaded_file.type)
+    if isinstance(uploaded_file, UploadedFile):
+        blob.upload_from_file(uploaded_file, content_type=uploaded_file.type)
+    else:
+        blob.upload_from_filename(uploaded_file)
 
 
 def delete_file_from_storage(remote_path: str):
