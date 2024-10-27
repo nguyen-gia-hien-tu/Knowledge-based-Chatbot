@@ -145,10 +145,6 @@ if uploaded_file:
     with open(local_file, "wb") as f:
         f.write(uploaded_file.getvalue())
 
-    # Re-run the script so the file uploader widget doesn't have the uploaded
-    # and processed file
-    # st.rerun()
-
 
 ################################################################################
 # Start Main Feature
@@ -286,7 +282,7 @@ for file_or_folder_name in files_and_folders_name:
             # continuing to list the files in the old folder
             st.rerun()
     else:
-        file_clicked = container.download_button(
+        container.download_button(
             label=f"{truncate_filename(file_or_folder_name, length=30)}",
             icon=":material/picture_as_pdf:",
             data=open(file_path, "rb").read(),
