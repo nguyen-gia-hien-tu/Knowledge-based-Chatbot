@@ -1,9 +1,13 @@
 from datetime import datetime
 import mimetypes
 import os
+from pathlib import Path
 import streamlit as st
 
 
+################################################################################
+# Set page configuration
+################################################################################
 st.set_page_config(
     page_title="Upload Files",
     page_icon=":open_file_folder:",
@@ -19,10 +23,11 @@ st.markdown(
     }
 
     /* Apply CSS to button of type "primary" */
+    /* https://discuss.streamlit.io/t/how-to-get-click-action-in-a-text/39441/4 */
     button[kind="primary"] {
         background: none!important;
         border: none;
-        color: black !important;
+        color: light-dark(black, white) !important;     /* Dynamically set text color contrast to the theme */
         text-decoration: none;
         cursor: pointer;
         border: none !important;
@@ -33,12 +38,7 @@ st.markdown(
     }
     button[kind="primary"]:hover {
         text-decoration: none;
-        color: blue !important;
-    }
-    button[kind="primary"]:focus {
-        outline: none !important;
-        box-shadow: none !important;
-        color: black !important;
+        color: light-dark(blue, cyan) !important;
     }
     </style>
     """,
@@ -46,6 +46,23 @@ st.markdown(
 )
 
 
+################################################################################
+# Set page constants
+################################################################################
+DOCS_FOLDER = "documents"
+CONTAINER_HEIGHT = 50
+
+
+################################################################################
+# Initialize session state variables
+################################################################################
+if "current_folder" not in st.session_state:
+    st.session_state["current_folder"] = DOCS_FOLDER
+
+
+################################################################################
+# Utility functions
+################################################################################
 def truncate_filename(filename: str, length: int = 35) -> str:
     if len(filename) > length:
         return filename[:length-10] + "..." + filename[-10:]
@@ -55,8 +72,6 @@ def truncate_filename(filename: str, length: int = 35) -> str:
 ################################################################################
 # Create upload file functionality
 ################################################################################
-DOCS_FOLDER = "documents"
-
 uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if uploaded_file:
@@ -67,17 +82,19 @@ if uploaded_file:
         f.write(uploaded_file.getvalue())
 
 
-if "current_folder" not in st.session_state:
-    st.session_state["current_folder"] = DOCS_FOLDER
-
-st.subheader(st.session_state["current_folder"])
-
-
 ################################################################################
+# Start Main Feature
+################################################################################
+list_files_container = st.container(border=True)
+current_folder: str = str(st.session_state["current_folder"])
+list_files_container.markdown(f'#### {current_folder}')
+list_files_container.divider()
+
+
+############################################################
 # Write headers for listing available files and folders
-################################################################################
-CONTAINER_HEIGHT = 50
-cols = st.columns([0.5, 3, 1.5, 1, 1])
+############################################################
+cols = list_files_container.columns([0.5, 3, 1.5, 1, 1])
 
 container = cols[0].container(height=CONTAINER_HEIGHT, border=False)
 container.checkbox("Select all", key="select_all", label_visibility="hidden")
@@ -95,19 +112,56 @@ container = cols[4].container(height=CONTAINER_HEIGHT, border=False)
 container.markdown("##### Time")
 
 
-
-################################################################################
-# List all files and folders
-################################################################################
+############################################################
+# Write entries for files and folders (non recursively)
+############################################################
 files_and_folders = os.listdir(st.session_state["current_folder"])
 
 print("*" * 100)
 print(files_and_folders)
 print("*" * 100)
 
+
+############################################################
+# Add entry for "previous folder" to go back to the parent folder
+############################################################
+container = cols[0].container(height=CONTAINER_HEIGHT, border=False)
+container.checkbox(
+    "File checkbox",
+    key=os.path.relpath(st.session_state["current_folder"]),
+    label_visibility="hidden"
+)
+
+container = cols[1].container(height=CONTAINER_HEIGHT, border=False)
+previous_folder_clicked = container.button(
+    label="..",
+    use_container_width=True,
+    type="primary"
+)
+if previous_folder_clicked:
+    st.session_state["current_folder"] = Path(st.session_state["current_folder"]).parent
+    # Re-run the script to list the files in the new folder instead of
+    # continuing to list the files in the old folder
+    st.rerun()
+
+container = cols[2].container(height=CONTAINER_HEIGHT, border=False)
+container.markdown("Folder")
+
+container = cols[3].container(height=CONTAINER_HEIGHT, border=False)
+container.markdown("N/A")
+
+container = cols[4].container(height=CONTAINER_HEIGHT, border=False)
+container.markdown("N/A")
+
+
+############################################################
+# Add entries for all files and folders (non recursively) in the current folder
+############################################################
 for file_or_folder in files_and_folders:
+    # Get the file path including the folder name
     file_path = os.path.join(st.session_state["current_folder"], file_or_folder)
 
+    # Get the content type, file size, and upload time of file/folder
     if os.path.isdir(file_path):
         content_type = "Folder"
         file_size = "N/A"
@@ -117,7 +171,7 @@ for file_or_folder in files_and_folders:
         file_size = "{:.2f} KB".format(os.path.getsize(file_path) / 1024)
         upload_time = datetime.fromtimestamp(os.path.getctime(file_path)).strftime("%b %d, %Y")
 
-    # Create checkbox for the file/folder
+    # Create checkbox to select the file/folder
     container = cols[0].container(height=CONTAINER_HEIGHT, border=False)
     container.checkbox(
         "File checkbox",
@@ -128,13 +182,21 @@ for file_or_folder in files_and_folders:
 
     # Write the file/folder name
     container = cols[1].container(height=CONTAINER_HEIGHT, border=False)
-    # container.markdown(truncate_filename(file_or_folder))
-    container.button(
+    file_or_folder_clicked = container.button(
         label=truncate_filename(file_or_folder),
         key=f"file_name_{file_path}",
         use_container_width=True,
         type="primary"
     )
+    if file_or_folder_clicked:
+        if os.path.isdir(file_path):
+            st.session_state["current_folder"] = file_path
+            print("*" * 100)
+            print(f"Current folder: {st.session_state['current_folder']}")
+            print("*" * 100)
+            # Re-run the script to list the files in the new folder instead of
+            # continuing to list the files in the old folder
+            st.rerun()
 
     # Write the content type
     container = cols[2].container(height=CONTAINER_HEIGHT, border=False)
