@@ -7,4 +7,6 @@ RUN pip install -r requirements.txt -U
 
 COPY src /app/src
 
+HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
+
 CMD ["streamlit", "run", "src/Home.py", "--server.port", "8080"]

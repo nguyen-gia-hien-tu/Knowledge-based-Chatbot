@@ -5,5 +5,8 @@
 # Firebase
 firebase-service-account.json
 
+# Vector Database Record Manager
+record_manager_cache.sql
+
 # Python
 __pycache__/

@@ -40,8 +40,9 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
 
 - Click on **"Get started"** button to create a bucket
 
-- Copy the bucket name, including the `gs://` part and put it as the value of
-  the `FIREBASE_STORAGE_REMOTE_PATH` in the `.env` file
+- Copy the bucket name, excluding the `gs://` part, but including the
+  `.appspot.com` part and put it as the value of the
+  `FIREBASE_STORAGE_BUCKET_NAME` in the `.env` file
 
 
 ### Create a Gemini AI API Key to call the Gemini Model

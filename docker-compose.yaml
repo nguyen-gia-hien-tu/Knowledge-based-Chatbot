@@ -11,5 +11,6 @@ services:
       - "8080"
     volumes:
       - ./src:/app/src
+      - ./.streamlit:/app/.streamlit
       - ./.env:/app/.env
       - ./firebase-service-account.json:/app/firebase-service-account.json

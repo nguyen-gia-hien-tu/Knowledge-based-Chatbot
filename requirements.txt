@@ -7,6 +7,7 @@ langchain-community
 langchain-text-splitters
 # langchain-google-vertexai
 langchain-google-genai
+langchain-google-community
 langchain-huggingface
 pypdf
 unstructured
