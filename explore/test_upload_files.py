@@ -116,6 +116,10 @@ def delete_file_or_folder(file_or_folder_path: str):
             shutil.rmtree(file_or_folder_path)
         else:
             os.remove(file_or_folder_path)
+
+        st.session_state["current_folder"] = Path(
+            st.session_state["current_folder"]
+        ).parent
         st.rerun()
     elif no_clicked:
         st.rerun()
