@@ -52,7 +52,7 @@ st.markdown(
         border: none !important;
         display: flex;                      /* Make button content flexible */
         justify-content: flex-start;        /* Align button content to the left */
-        margin-top: -7px !important;       /* Move the button up slightly */
+        margin-top: -7px !important;        /* Move the button up slightly */
         padding: 0px 0px !important;        /* Adjust padding if necessary */
     }
     download_button[kind="primary"]:hover {
@@ -75,8 +75,12 @@ CONTAINER_HEIGHT = 50
 ################################################################################
 # Initialize session state variables
 ################################################################################
-if "current_folder" not in st.session_state:
-    st.session_state["current_folder"] = DOCS_FOLDER
+def initialize_session_state():
+    if "current_folder" not in st.session_state:
+        st.session_state["current_folder"] = DOCS_FOLDER
+
+
+initialize_session_state()
 
 
 ################################################################################
@@ -107,21 +111,25 @@ def sort_folder_comparator(path_1: str, path_2: str) -> int:
 @st.dialog("⚠ DELETE file or folder ⚠")
 def delete_file_or_folder(file_or_folder_path: str):
     st.write("Are you sure you want to delete this file or folder?")
-    yes, no = st.columns(2)
-    yes_clicked = yes.button("Yes", key="yes")
-    no_clicked = no.button("No", key="no")
+    _, no, yes = st.columns([5, 1, 1])
+    no_clicked = no.button("No", key="no", use_container_width=True)
+    yes_clicked = yes.button("Yes", key="yes", use_container_width=True)
 
-    if yes_clicked:
+    if no_clicked:
+        print("*" * 100)
+        print("No deleting clicked")
+        print("*" * 100)
+        st.rerun()
+    elif yes_clicked:
         if os.path.isdir(file_or_folder_path):
             shutil.rmtree(file_or_folder_path)
+            # Since the current folder is deleted, go back to the parent folder
+            st.session_state["current_folder"] = Path(
+                st.session_state["current_folder"]
+            ).parent
         else:
             os.remove(file_or_folder_path)
 
-        st.session_state["current_folder"] = Path(
-            st.session_state["current_folder"]
-        ).parent
-        st.rerun()
-    elif no_clicked:
         st.rerun()
 
 
@@ -131,11 +139,15 @@ def delete_file_or_folder(file_or_folder_path: str):
 uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if uploaded_file:
-    local_file = os.path.join(DOCS_FOLDER, uploaded_file.name)
+    local_file = os.path.join(st.session_state["current_folder"], uploaded_file.name)
 
     # Save the uploaded file to the local filesystem
     with open(local_file, "wb") as f:
         f.write(uploaded_file.getvalue())
+
+    # Re-run the script so the file uploader widget doesn't have the uploaded
+    # and processed file
+    # st.rerun()
 
 
 ################################################################################
@@ -184,11 +196,6 @@ files_and_folders_path = sorted(
 files_and_folders_name = map(
     lambda file_path: os.path.basename(file_path), files_and_folders_path
 )
-
-print("*" * 100)
-print(f"Unsorted folder: {os.listdir(st.session_state['current_folder'])}")
-print(f"Sorted folder: {files_and_folders_name}")
-print("*" * 100)
 
 
 ######################################################################
