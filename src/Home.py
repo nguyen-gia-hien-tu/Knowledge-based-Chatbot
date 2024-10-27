@@ -1,6 +1,5 @@
-import time
-
 import streamlit as st
+
 from utils.utils import setup_tools
 
 st.set_page_config(

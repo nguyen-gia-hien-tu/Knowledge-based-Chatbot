@@ -1,6 +1,6 @@
+import streamlit as st
 from langchain_core.runnables import Runnable
 
-import streamlit as st
 from utils.utils import setup_rag_chain, setup_tools
 
 

@@ -159,9 +159,9 @@ def setup_retriever(
 
     # Setup indexing function with `full` deletion mode
     logger.info("*" * 100)
-    logger.info("Running index function to `full` cleanup")
-    logger.info("*" * 100)
     logger.info(f"Number of splits: {len(splits)}")
+    logger.info("*" * 100)
+    logger.info("Running index function to `full` cleanup")
     logger.info("*" * 100)
     index(splits, record_manager, vector_store, cleanup="full", source_id_key="source")
     logger.info("Finished running index function to `full` cleanup")
