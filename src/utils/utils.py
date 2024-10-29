@@ -19,7 +19,7 @@ from pinecone import Index, Pinecone, ServerlessSpec
 from streamlit.runtime.caching import CacheResourceAPI
 
 from configuration import settings
-from utils.firebase import get_files_in_folder_from_storage, initialize_firebase_app
+from utils.firebase import get_blobs_in_folder_from_storage, initialize_firebase_app
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -121,7 +121,12 @@ def setup_retriever(
     logger.info("Loading documents from Firebase Storage")
 
     documents = []
-    files = get_files_in_folder_from_storage()
+    files = get_blobs_in_folder_from_storage(
+        folder_path=settings.DOCUMENTS_DIR,
+        return_files=True,
+        return_folders=False,
+        recursive=True,
+    )
 
     for file in files:
         # Get metadata from the file
@@ -139,13 +144,11 @@ def setup_retriever(
 
             for doc in docs:
                 if "source" in doc.metadata:
-                    doc.metadata["source"] = (
-                        f"gs://{settings.FIREBASE_STORAGE_BUCKET_NAME}/{file.name}"
-                    )
+                    doc.metadata["source"] = file.name
                 if metadata:
                     doc.metadata.update(metadata)
 
-            documents.extend(loader.load())
+            documents.extend(docs)
 
     logger.info(f"Number of documents loaded: {len(documents)}")
     logger.info("*" * 100)

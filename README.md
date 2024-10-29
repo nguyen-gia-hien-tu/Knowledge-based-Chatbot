@@ -5,11 +5,13 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
 ## End-to-End Steps to Setup the Chatbot
 
 
-### Copy .env.example to .env
+### Copy `.env.example` to `.env` and `record_manager_cache.db.example` to `record_manager_cache.db`
 
-- Copy and Paste the file `.env.example` to create a new file called `.env`
+- Copy and Paste the file `.env.example` and rename the new file to `.env`
 
-- We will modify the file `.env` to store API keys and configuration
+- Copy and Paste the file `record_manager_cache.db.example` and rename the new file to `record_manager_cache.db`
+
+- We will modify the file `.env` to store API keys and configuration later on
 
 
 ### Create a Firebase Project
@@ -137,7 +139,7 @@ There are 2 ways to run the application. with or without Docker
     - Then run the application with
 
       ```bash
-      streamlit run src/chatbot.py
+      streamlit run src/Home.py --server.port 8080
       ```
   </details>
 
@@ -171,3 +173,8 @@ There are 2 ways to run the application. with or without Docker
       ```
 
   </details>
+
+### View the Application
+
+To view the application after starting it up, simply go to
+[http://localhost:8080](http://localhost:8080)

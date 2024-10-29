@@ -5,9 +5,13 @@ from utils.utils import setup_rag_chain, setup_tools
 
 
 def main():
-    llm, retriever = setup_tools()
 
+    # Set up page configuration
+    st.sidebar.success("Select if you want to chat with the bot or upload documents")
     st.title("Knowledge-based Chatbot")
+
+    # Setup LLM and Retriever
+    llm, retriever = setup_tools()
 
     # Initialize chat history
     if "messages" not in st.session_state:

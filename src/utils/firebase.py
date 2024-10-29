@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List
+from typing import Iterator
 
 import firebase_admin
 from firebase_admin import credentials, storage
@@ -43,32 +43,70 @@ def get_file_from_storage(remote_path: str) -> Blob:
     return blob if blob.exists() else None
 
 
-def get_files_in_folder_from_storage(folder_path: str = "") -> List[Blob]:
-    """Function to recursively list files from a folder in a Firebase Storage.
-    This function only list file names and not the folder or subfolder names.
+def get_blobs_in_folder_from_storage(
+    folder_path: str = "",
+    return_files: bool = True,
+    return_folders: bool = True,
+    recursive: bool = False,
+) -> Iterator[Blob]:
+    """
+    Function to list files and folders from a folder in a Firebase Storage. If
+    the folder_path is an empty string, return a list of all files and folders
+    in the root directory.
 
     Args:
-        folder_path (str): The folder path in the Firebase Storage
+        folder_path (str): The folder path in the Firebase Storage. Defaults to `""`.
+        return_files (bool): If True, return files. Defaults to `True`.
+        return_folders (bool): If True, return folders. Defaults to `True`.
+        recursive (bool): If True, list all files and folders recursively.
+        Defaults to `False`.
 
     Returns:
-        List[Blob]: if the files exist in the given folder_path, return a list
-            of download URLs of the files. Otherwise, return an empty list. If
-            the folder_path is an empty string, return a list of all files in
-            the root directory.
+        List[Blob]: Return a list of blobs (files and/or folders) in the given
+            folder_path
     """
     bucket = storage.bucket()
+    # If folder_path is empty, list all files in the root directory
     if folder_path == "":
         prefix = ""
     else:
-        prefix = folder_path if folder_path.endswith("/") else folder_path + "/"
+        # Add "/" at the end to avoid mixing up with files of similar prefix
+        prefix = folder_path.rstrip("/") + "/"
 
-    blobs: List[Blob] = bucket.list_blobs(prefix=prefix)
+    blobs: Iterator[Blob] = bucket.list_blobs(prefix=prefix, delimiter="/")
 
-    return [blob for blob in blobs if not blob.name.endswith("/")]
+    # Yield the files first (if return_files is True)
+    if return_files:
+        for blob in blobs:
+            if not blob.name.endswith("/"):
+                yield blob
+
+    # Then, yield the folders (if return_folders is True)
+    if return_folders:
+        for prefix in blobs.prefixes:
+            yield bucket.blob(prefix)
+
+    # Finally, yield the files in the subfolders (if recursive is True)
+    if recursive:
+        for prefix in blobs.prefixes:
+            yield from get_blobs_in_folder_from_storage(
+                folder_path=prefix, recursive=True
+            )
+
+
+def create_folder_in_storage(folder_path: str):
+    """Function to create a folder in Firebase Storage
+
+    Args:
+        folder_path (str): Path to the folder in Firebase Storage
+    """
+    bucket = storage.bucket()
+    blob = bucket.blob(folder_path.rstrip("/") + "/")
+    blob.upload_from_string("")
 
 
 def upload_file_to_storage(uploaded_file: UploadedFile | Path, remote_path: str):
-    """Function to upload file to a folder in Firebase Storage
+    """Function to upload file to Firebase Storage
 
     Args:
         uploaded_file (UploadedFile): File to be uploaded from Streamlit app
@@ -82,12 +120,19 @@ def upload_file_to_storage(uploaded_file: UploadedFile | Path, remote_path: str)
         blob.upload_from_filename(uploaded_file)
 
 
-def delete_file_from_storage(remote_path: str):
-    """Function to delete a file from Firebase Storage
+def delete_blob_from_storage(remote_path: str):
+    """Function to delete a file or folder from Firebase Storage
 
     Args:
         remote_path (str): Path to the file in Firebase Storage
     """
     bucket = storage.bucket()
-    blob = bucket.blob(remote_path)
-    blob.delete()
+    # If remote_path is a folder, delete all files in the folder
+    if remote_path.endswith("/"):
+        blobs: Iterator[Blob] = bucket.list_blobs(prefix=remote_path.rstrip("/") + "/")
+
+        for blob in blobs:
+            blob.delete()
+    else:
+        blob = bucket.blob(remote_path)
+        blob.delete()
