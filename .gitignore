@@ -6,7 +6,7 @@
 firebase-service-account.json
 
 # Vector Database Record Manager
-record_manager_cache.sql
+record_manager_cache.db
 
 # Python
 __pycache__/

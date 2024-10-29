@@ -14,3 +14,4 @@ services:
       - ./.streamlit:/app/.streamlit
       - ./.env:/app/.env
       - ./firebase-service-account.json:/app/firebase-service-account.json
+      - ./record_manager_cache.db:/app/record_manager_cache.db
