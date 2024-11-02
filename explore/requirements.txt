@@ -1,0 +1,7 @@
+streamlit
+watchdog
+extra-streamlit-components
+firebase-admin
+requests
+pyJWT
+email-validator
