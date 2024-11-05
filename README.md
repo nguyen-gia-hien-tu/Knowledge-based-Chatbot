@@ -23,7 +23,7 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
 - Enter the project name and click the **"Continue"** button
 
 - After the project is created and you are in the project, click on the
-  **"Settings"** icon (the ⚙️ icon)
+  **"Settings"** icon (the ⚙️ icon) and click on **"Project settings"**
 
 - Then, navigate to the **"Service accounts"** tab and click **"Generate new
   private key"** button to create a new service account
@@ -35,6 +35,12 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
   `FIREBASE_SERVICE_ACCOUNT_FILE` in the `.env` file are
   `firebase-service-account.json`
 
+- Now, on the same "Project settings" page, go to the **"General"** tab and
+  locate the **"Web API Key"** entry
+
+- Copy the value of this "Web API Key" and put it as the value for the
+  **"FIREBASE_API_KEY"** in the `.env` file
+
 
 ### Create Storage in the Firebase project
 
@@ -42,12 +48,71 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
 
 - Click on **"Get started"** button to create a bucket
 
-- Copy the bucket name, excluding the `gs://` part, but including the
+- Copy the bucket name, *excluding* the `gs://` part, but *including* the
   `.appspot.com` part and put it as the value of the
   `FIREBASE_STORAGE_BUCKET_NAME` in the `.env` file
 
 
-### Create a Gemini AI API Key to call the Gemini Model
+### Create an OAuth 2.0 Client ID for Google Single-Sign On
+
+- To enable "Log In with Google" feature, we need to enable **"Google"** in the
+  "Sign-in providers" section
+
+- Go to the created Firebase project and click on the **"Authentication"**
+  product
+
+- Then click on the **"Sign-in method"** tab and then, the **"Add new
+  provider"** button
+
+- Click on the **"Enable"** toggle to enable the Google provider
+
+  - A drop down will appear to update "Public-facing name for project" and
+    "Support email for project"
+
+  - Enter a preferred name for the "Public-facing name for project"
+
+  - Select the email address used to create the Firebase project for "Support
+    email for project"
+
+  - Then, click **"Save"**
+
+- After Firebase finishes creating the client ID for "Sign in with Google"
+  feature, go to the [Google Cloud
+  Credentials](https://console.cloud.google.com/apis/credentials) page to
+  download the client secret file
+
+- In the Google Cloud Credentials page, there is a section for **"OAuth 2.0
+  Client IDs"** with 1 entry. This entry is the client ID that we created above
+
+- Click on the entry for client ID
+
+- On the **"Client secrets"** section, there is a client secret shown along with
+  a "Download JSON" button
+
+- Click on the download button to download the file to the root of the
+  repository with the name **"firebase-google-oidc-client-secret.json"**
+
+- Make sure the value of the key `GOOGLE_OIDC_CLIENT_SECRET_FILE` in the `.env`
+  file has the value of `firebase-google-oidc-client-secret.json`, which is the
+  name of the client secret file above
+
+- Continue on this credentials page, locate the **"Authorized redirect URIs"**
+  section
+
+- Click on the **"Add URI"** button and enter **"http://localhost:8080"**, then
+  press Enter
+
+  - This is the URL with the port number where our Streamlit knowledge-based
+    chatbot application locally runs on
+
+  - When deploying to an actual hosting site, we will need to add that URL to
+    the "Authorized redirect URIs" section
+
+- Make sure the `GOOGLE_OIDC_REDIRECT_URI` in the `.env` file has the value of
+  `http://localhost:8080` (for local development)
+
+
+### Create a Gemini AI API Key to Call the Gemini Model
 
 - Go to the [Google AI Studio](https://aistudio.google.com) website
 
@@ -63,7 +128,7 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
   file
 
 
-### Create a Pinecone account to store vectors
+### Create a Pinecone Account to Store Vectors
 
 - Go to [Pinecone](https://www.pinecone.io) website
 
@@ -78,7 +143,7 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
 - Paste the API key content to the `PINECONE_API_KEY` entry in the `.env` file
 
 
-### Create LangSmith project for tracing
+### Create LangSmith Project for Tracing
 
 - Go to [LangSmith](https://smith.langchain.com) website
 
@@ -92,7 +157,7 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
   4 keys that start with `LANGCHAIN_` in the `.env` file)
 
 
-### Run the application
+### Run the Application
 
 There are 2 ways to run the application. with or without Docker
 
@@ -139,7 +204,7 @@ There are 2 ways to run the application. with or without Docker
     - Then run the application with
 
       ```bash
-      streamlit run src/Home.py --server.port 8080
+      streamlit run src/home.py --server.port 8080
       ```
   </details>
 

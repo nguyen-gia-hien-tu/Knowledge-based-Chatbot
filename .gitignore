@@ -2,8 +2,11 @@
 .venv
 .env
 
-# Firebase
-firebase-service-account.json
+# Secrets
+secrets.toml
+
+# Firebase files
+firebase-*.json
 
 # Vector Database Record Manager
 record_manager_cache.db

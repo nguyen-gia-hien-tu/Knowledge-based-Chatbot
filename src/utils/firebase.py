@@ -1,16 +1,24 @@
 import logging
+import secrets
+import string
 from pathlib import Path
-from typing import Iterator
+from typing import Dict, Iterator, Optional, Union
 
 import firebase_admin
-from firebase_admin import credentials, storage
+import requests
+from firebase_admin import auth, credentials, storage
+from firebase_admin.exceptions import FirebaseError
 from google.cloud.storage import Blob
+from google_auth_oauthlib import flow
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 from configuration import settings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+FIREBASE_AUTH_BASE_URL = "https://identitytoolkit.googleapis.com/v1/accounts:"
 
 
 def initialize_firebase_app():
@@ -27,15 +35,265 @@ def initialize_firebase_app():
         logging.info("*" * 100)
 
 
-def get_file_from_storage(remote_path: str) -> Blob:
-    """Function to get a file from Firebase Storage
+def create_new_user(email: str, password: str, name: str):
+    """
+    Create a new user with the given email, password, and name using Firebase
+    https://firebase.google.com/docs/reference/admin/python/firebase_admin.auth#:~:text=SAML%20provider%20config.-,create_user,-(**kwargs
 
     Args:
-        remote_path (str): Path to the file in Firebase Storage
+        email (str): The email address of the user to be created
+        password (str): The password of the user to be created
+        name (str): The display name of the user to be created
 
     Returns:
-        Blob: if the file exists in the given remote_path, return the download
-            URL of the file. Otherwise, return None.
+        user (auth.UserRecord): The user information if the user is created
+
+    Raises:
+        e: Any error raised by Firebase
+    """
+    try:
+        user: auth.UserRecord = auth.create_user(
+            email=email, password=password, display_name=name
+        )
+        logger.info("*" * 100)
+        logger.info(f"Successfully created user: {user.uid}")
+        logger.info("*" * 100)
+        return user
+    except (ValueError, FirebaseError) as e:
+        logger.info("*" * 100)
+        logger.error(f"Error creating user: {e}")
+        logger.info("*" * 100)
+        raise e
+
+
+def authenticate_user_with_password(
+    email: str, password: str
+) -> Optional[Dict[str, Union[str, bool]]]:
+    """
+    Authenticate a user with the given email and password using Firebase
+    Authentication REST API
+    https://firebase.google.com/docs/reference/rest/auth#section-sign-in-email-password
+
+    Args:
+        email (str):
+            The email address of the user to be authenticated
+        password (str):
+            The password of the user to be authenticated
+
+    Returns:
+        Optional[Dict[str, Union[str, bool]]]:
+            If there is an error, return None. Otherwise, return the JSON
+            response containing the following:
+                idToken (str):
+                    A Firebase Auth ID token for the authenticated user.
+                email (str):
+                    The email for the authenticated user.
+                refreshToken (str):
+                    A Firebase Auth refresh token for the authenticated user.
+                expiresIn (str):
+                    The number of seconds in which the ID token expires.
+                localId (str):
+                    The uid of the authenticated user.
+                registered (bool):
+                    Whether the email is for an existing account.
+    """
+    url = f"{FIREBASE_AUTH_BASE_URL}signInWithPassword?key={settings.FIREBASE_API_KEY}"
+    body = {
+        "email": email,
+        "password": password,
+        "returnSecureToken": True,
+    }
+    response = requests.post(url=url, json=body)
+    if response.status_code != 200:
+        logger.error("*" * 100)
+        logger.error(f"Error authenticating user with password: {response.json()}")
+        logger.error("*" * 100)
+        return None
+
+    return response.json()
+
+
+def authenticate_user_with_google_oidc(auth_code: str) -> auth.UserRecord:
+    """
+    Authenticate a user with Google OIDC using Google OAuth2.0 flow. If the user
+    already has an account using the same email from the Firebase Authentication
+    system, then we get the user info from Firebase. Otherwise, we create a new
+    user in the Firebase.
+    https://googleapis.github.io/google-api-python-client/docs/oauth.html
+
+    Args:
+        auth_code (str):
+            The authentication code obtained when Google redirects back to the
+            endpoint after the user signs in with Google
+
+    Returns:
+        auth.UserRecord:
+            The user information from Firebase Authentication system
+    """
+    # Use authorization code to fetch token from Google
+    google_flow = flow.Flow.from_client_secrets_file(
+        settings.GOOGLE_OIDC_CLIENT_SECRET_FILE,
+        scopes=[
+            "openid",
+            "https://www.googleapis.com/auth/userinfo.profile",
+            "https://www.googleapis.com/auth/userinfo.email",
+        ],
+    )
+    google_flow.redirect_uri = settings.GOOGLE_OIDC_REDIRECT_URI
+    google_flow.fetch_token(code=auth_code)
+
+    # Obtain Google user info
+    credentials = google_flow.credentials
+    google_user = requests.get(
+        "https://openidconnect.googleapis.com/v1/userinfo",
+        headers={"Authorization": f"Bearer {credentials.token}"},
+    ).json()
+
+    # Firebase Authentication: Create a custom token
+    firebase_token = auth.create_custom_token(google_user["sub"])
+
+    # If the user already has an account using the same email, then we get the
+    # user info from the Firebase Authentication system.
+    firebase_user = get_user_by_email(google_user["email"])
+
+    logger.info("*" * 100)
+    logger.info(f"Firebase User: {firebase_user.display_name if firebase_user else None}")
+    logger.info("*" * 100)
+
+    # Otherwise, although the user has signed in with Google, we still need
+    # to create a new user in the Firebase Authentication system to be
+    # compatible with the rest of the application.
+    if firebase_user is None:
+
+        # Generating a good password following the guidelines from
+        # https://csguide.cs.princeton.edu/accounts/passwords
+        alphabet = string.ascii_letters + string.digits
+        generated_password = "".join(secrets.choice(alphabet) for _ in range(20))
+
+        firebase_user = create_new_user(
+            google_user["email"], generated_password, google_user["name"]
+        )
+
+    return firebase_user
+
+
+def get_user_by_token(id_token: str) -> Optional[auth.UserRecord]:
+    """
+    Function to get the user information from the JWT token if the token is
+    valid. Otherwise, return None.
+    https://firebase.google.com/docs/reference/admin/python/firebase_admin.auth#:~:text=the%20user%20account.-,verify_id_token,-(id_token%2C
+
+    Args:
+        id_token (str): The JWT token presenting the user
+
+    Returns:
+        auth.UserRecord:
+            The user's information if the token is valid, otherwise None
+            https://firebase.google.com/docs/reference/admin/python/firebase_admin.auth#firebase_admin.auth.UserRecord:~:text=class%20firebase_admin.auth.UserRecord(data)
+    """
+    try:
+        decoded_token = auth.verify_id_token(id_token=id_token, clock_skew_seconds=5)
+        user = auth.get_user(decoded_token["uid"])
+    except Exception as e:
+        logger.error("*" * 100)
+        logger.error(f"Error getting user from token: {e}")
+        logger.error("*" * 100)
+        return None
+
+    return user
+
+
+def get_user_by_email(email: str) -> Optional[auth.UserRecord]:
+    """
+    Function to get the user information from the email address
+    https://firebase.google.com/docs/reference/admin/python/firebase_admin.auth#:~:text=retrieving%20the%20user.-,get_user_by_email,-(email)
+
+    Args:
+        email (str):
+            The email address of the user
+
+    Returns:
+        Optional[auth.UserRecord]:
+            The user information of the user with the given email address in
+            Firebase. If the user does not exist, return None.
+    """
+    try:
+        user: auth.UserRecord = auth.get_user_by_email(email)
+    except Exception as e:
+        logger.error("*" * 100)
+        logger.error(f"Error getting user by email: {e}")
+        logger.error("*" * 100)
+        return None
+
+    return user
+
+
+def update_user_info_by_email(email: str, **kwargs) -> auth.UserRecord:
+    """
+    Function to update the user information of the user with the given email
+    https://firebase.google.com/docs/reference/admin/python/firebase_admin.auth#:~:text=SAML%20provider%20config.-,update_user,-(uid%2C
+
+    Args:
+        email (str):
+            The email address of the user to be updated
+
+    Returns:
+        auth.UserRecord:
+            The updated user information if the user exists. Otherwise, return
+            None
+    """
+    try:
+        user = get_user_by_email(email)
+        if user:
+            updated_user = auth.update_user(user.uid, **kwargs)
+        else:
+            logger.error("*" * 100)
+            logger.error(f"User with email {email} does not exist.")
+            logger.error("*" * 100)
+            return None
+    except Exception as e:
+        logger.error("*" * 100)
+        logger.error(f"Error updating user info: {e}")
+        logger.error("*" * 100)
+        return None
+
+    return updated_user
+
+
+def reset_password(email: str):
+    """
+    Function to send a password reset email to the given email address using
+    Firebase Authentication REST API
+    https://firebase.google.com/docs/reference/rest/auth#section-send-password-reset-email
+
+    Args:
+        email (str): The email address to send the password reset email to
+    """
+    url = f"{FIREBASE_AUTH_BASE_URL}sendOobCode?key={settings.FIREBASE_API_KEY}"
+    body = {
+        "requestType": "PASSWORD_RESET",
+        "email": email,
+    }
+    response = requests.post(url=url, json=body)
+    if response.status_code != 200:
+        logger.error(f"Error sending password reset email: {response.json()}")
+
+    return
+
+
+def get_file_from_storage(remote_path: str) -> Blob:
+    """
+    Function to get a file from Firebase Storage
+    https://cloud.google.com/python/docs/reference/storage/latest/google.cloud.storage.bucket.Bucket#google_cloud_storage_bucket_Bucket_blob
+
+    Args:
+        remote_path (str):
+            Path to the file in Firebase Storage
+
+    Returns:
+        Blob:
+            If the file exists in the given remote_path, return the download URL
+            of the file. Otherwise, return None.
     """
     bucket = storage.bucket()
     blob = bucket.blob(remote_path)
@@ -50,19 +308,24 @@ def get_blobs_in_folder_from_storage(
     recursive: bool = False,
 ) -> Iterator[Blob]:
     """
-    Function to list files and folders from a folder in a Firebase Storage. If
-    the folder_path is an empty string, return a list of all files and folders
-    in the root directory.
+    Function to list files and folders from a given folder in Firebase Storage.
+    If the given folder_path is an empty string, return a list of all files and
+    folders in the root directory.
 
     Args:
-        folder_path (str): The folder path in the Firebase Storage. Defaults to `""`.
-        return_files (bool): If True, return files. Defaults to `True`.
-        return_folders (bool): If True, return folders. Defaults to `True`.
-        recursive (bool): If True, list all files and folders recursively.
-        Defaults to `False`.
+        folder_path (str):
+            The folder path in the Firebase Storage. Defaults to `""`.
+        return_files (bool):
+            If True, include files in the returned list. Defaults to `True`.
+        return_folders (bool):
+            If True, include folders in the returned list. Defaults to `True`.
+        recursive (bool):
+            If True, list all files and folders recursively. Defaults to
+            `False`.
 
     Returns:
-        List[Blob]: Return a list of blobs (files and/or folders) in the given
+        Iterator[Blob]:
+            Return an iterator of blobs (files and/or folders) in the given
             folder_path
     """
     bucket = storage.bucket()
@@ -90,12 +353,16 @@ def get_blobs_in_folder_from_storage(
     if recursive:
         for prefix in blobs.prefixes:
             yield from get_blobs_in_folder_from_storage(
-                folder_path=prefix, recursive=True
+                folder_path=prefix,
+                return_files=return_files,
+                return_folders=return_folders,
+                recursive=True,
             )
 
 
 def create_folder_in_storage(folder_path: str):
-    """Function to create a folder in Firebase Storage
+    """
+    Function to create a folder in Firebase Storage
 
     Args:
         folder_path (str): Path to the folder in Firebase Storage
@@ -106,11 +373,14 @@ def create_folder_in_storage(folder_path: str):
 
 
 def upload_file_to_storage(uploaded_file: UploadedFile | Path, remote_path: str):
-    """Function to upload file to Firebase Storage
+    """
+    Function to upload file to Firebase Storage
 
     Args:
-        uploaded_file (UploadedFile): File to be uploaded from Streamlit app
-        remote_path (str): Path to the location in Firebase Storage for the file
+        uploaded_file (UploadedFile):
+            File to be uploaded from Streamlit app
+        remote_path (str):
+            Path to the location in Firebase Storage to store the file
     """
     bucket = storage.bucket()
     blob = bucket.blob(remote_path)
@@ -121,10 +391,12 @@ def upload_file_to_storage(uploaded_file: UploadedFile | Path, remote_path: str)
 
 
 def delete_blob_from_storage(remote_path: str):
-    """Function to delete a file or folder from Firebase Storage
+    """
+    Function to delete a file or folder from Firebase Storage
 
     Args:
-        remote_path (str): Path to the file in Firebase Storage
+        remote_path (str):
+            Path to the file or folder in Firebase Storage
     """
     bucket = storage.bucket()
     # If remote_path is a folder, delete all files in the folder
