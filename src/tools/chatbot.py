@@ -3,7 +3,7 @@ import logging
 import streamlit as st
 from langchain_core.runnables import Runnable
 
-from utils.rag import setup_rag_chain, setup_tools
+from utils.rag import setup_rag_chain, setup_rag_tools
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 st.title("Knowledge-based Chatbot")
 
 # Setup LLM and Retriever
-llm, retriever = setup_tools()
+llm, retriever = setup_rag_tools(
+    namespace=st.session_state["uid"], folder_path=st.session_state["uid"]
+)
 
 # Initialize chat history
 if "messages" not in st.session_state:

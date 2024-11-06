@@ -157,7 +157,9 @@ def authenticate_user_with_google_oidc(auth_code: str) -> auth.UserRecord:
     firebase_user = get_user_by_email(google_user["email"])
 
     logger.info("*" * 100)
-    logger.info(f"Firebase User: {firebase_user.display_name if firebase_user else None}")
+    logger.info(
+        f"Firebase User: {firebase_user.display_name if firebase_user else None}"
+    )
     logger.info("*" * 100)
 
     # Otherwise, although the user has signed in with Google, we still need
@@ -181,7 +183,12 @@ def get_user_by_token(id_token: str) -> Optional[auth.UserRecord]:
     """
     Function to get the user information from the JWT token if the token is
     valid. Otherwise, return None.
-    https://firebase.google.com/docs/reference/admin/python/firebase_admin.auth#:~:text=the%20user%20account.-,verify_id_token,-(id_token%2C
+
+    Verify the JWT token:
+    https://firebase.google.com/docs/reference/admin/python/firebase_admin.auth#:~:text=the%20user%20account.-,verify_id_token
+
+    Get the user information:
+    https://firebase.google.com/docs/reference/admin/python/firebase_admin.auth#:~:text=the%20SAML%20provider.-,get_user,-(uid)
 
     Args:
         id_token (str): The JWT token presenting the user

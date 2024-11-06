@@ -1,5 +1,5 @@
-from enum import Enum
 import time
+from enum import Enum
 
 import streamlit as st
 
@@ -8,6 +8,7 @@ class MessageType(Enum):
     """
     Enum class to define the type of message to display.
     """
+
     SUCCESS = "success"
     ERROR = "error"
     WARNING = "warning"
