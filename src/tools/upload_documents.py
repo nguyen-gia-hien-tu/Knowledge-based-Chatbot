@@ -1,6 +1,5 @@
 import logging
 import mimetypes
-import os
 from functools import cmp_to_key
 from pathlib import PurePosixPath
 from typing import List
@@ -8,11 +7,11 @@ from typing import List
 import streamlit as st
 from google.cloud.storage import Blob
 
-from configuration import settings
 from utils.firebase import (
     create_folder_in_storage,
     delete_blob_from_storage,
     get_blobs_in_folder_from_storage,
+    get_file_from_storage,
     upload_file_to_storage,
 )
 from utils.rag import setup_embedding, setup_pinecone_index, setup_retriever
@@ -37,7 +36,7 @@ def setup_fresh_retriever():
 
     # Clear the cache on the setup_retriever() function to let it run again
     setup_retriever.clear()
-    setup_retriever(index, embedding)
+    setup_retriever(index, embedding, st.session_state["uid"])
 
     logger.info("*" * 100)
     logger.info("Retriever is refreshed")
@@ -48,7 +47,13 @@ def initialize_session_state():
     """Initialize the session state for the page"""
 
     if "current_folder" not in st.session_state:
-        st.session_state["current_folder"] = settings.DOCUMENTS_DIR
+        # If the user does not have a folder in Firebase Storage, create one
+        # using the user's UID
+        if not get_file_from_storage(st.session_state["uid"]):
+            create_folder_in_storage(st.session_state["uid"])
+
+        # st.session_state["current_folder"] = settings.DOCUMENTS_DIR
+        st.session_state["current_folder"] = st.session_state["uid"]
 
 
 def setup_css():
@@ -171,8 +176,8 @@ def create_new_folder():
     if cancel_clicked:
         st.rerun()
     elif create_clicked:
-        new_folder_path = os.path.join(
-            st.session_state["current_folder"], new_folder_name
+        new_folder_path = str(
+            PurePosixPath(st.session_state["current_folder"]).joinpath(new_folder_name)
         )
         create_folder_in_storage(new_folder_path)
         st.rerun()
@@ -199,10 +204,10 @@ CONTAINER_HEIGHT = 50
 ######################################################################
 
 # With only the "file_uploader" widget, after uploading a file, there will be
-# another widget appearing below the "file_uploader" widget. This causes the
-# file to be automatically uploaded again after the user clicks the delete
-# button to delete the file. Use the "form" feature to clear the widget after
-# submission
+# another widget appearing below the "file_uploader" widget, showing what the
+# uploaded file is. This causes the file to be automatically uploaded again
+# after the user clicks the delete button to delete the file. Use the "form"
+# feature to clear the widget after submission
 # https://discuss.streamlit.io/t/clear-the-cache-for-file-uploder-on-streamlit/14304/2
 
 file_upload_form = st.form("file_upload_form", clear_on_submit=True)
@@ -212,7 +217,9 @@ submitted = file_upload_form.form_submit_button("Upload :rocket:")
 # If the upload button is clicked and a file is selected
 if submitted and uploaded_file:
     # Upload file to Firebase Storage
-    remote_path = os.path.join(st.session_state["current_folder"], uploaded_file.name)
+    remote_path = str(
+        PurePosixPath(st.session_state["current_folder"]).joinpath(uploaded_file.name)
+    )
     upload_file_to_storage(uploaded_file, remote_path)
     success_banner = st.success(f"File '{uploaded_file.name}' uploaded successfully!")
 
@@ -227,7 +234,9 @@ if submitted and uploaded_file:
         logger.error(f"Error setting up retriever while uploading file: {e}")
         logger.info("*" * 100)
 
-        remote_path = os.path.join(settings.DOCUMENTS_DIR, uploaded_file.name)
+        remote_path = str(
+            PurePosixPath(st.session_state["uid"]).joinpath(uploaded_file.name)
+        )
         delete_blob_from_storage(remote_path)
 
     # Clear the success message
@@ -237,6 +246,13 @@ if submitted and uploaded_file:
 # Write the current folder path
 ######################################################################
 list_files_container = st.container(border=True)
+
+# TODO: Display the current folder path without the user ID for better readability
+# current_folder_path_without_uid = str(
+#     PurePosixPath(st.session_state["current_folder"]).relative_to(
+#         st.session_state["uid"]
+#     )
+# )
 
 display_current_folder = list_files_container.container(border=False)
 display_current_folder.markdown(f'#### {str(st.session_state["current_folder"])}')
@@ -279,12 +295,19 @@ logger.info("*" * 100)
 ######################################################################
 cols = list_files_container.columns([0.5, 3, 1.5, 1, 1.2])
 
+# Add a button to delete all files and folders in the current folder
 container = cols[0].container(height=CONTAINER_HEIGHT, border=False)
 # container.checkbox("Select all", key="select_all", label_visibility="hidden")
-delete_all_clicked = container.button(":x:", key="delete_all", type="primary")
+delete_all_clicked = container.button(
+    ":x:",
+    key="delete_all",
+    disabled=st.session_state["current_folder"] == st.session_state["uid"],
+    type="primary"
+)
 if delete_all_clicked:
     delete_file_or_folder(st.session_state["current_folder"])
 
+# Add headers for Name, Type, Size, and Time columns
 container = cols[1].container(height=CONTAINER_HEIGHT, border=False)
 container.markdown("##### Name")
 
@@ -314,7 +337,8 @@ previous_folder_clicked = container.button(
     label="../",
     icon=":material/folder_open:",
     use_container_width=True,
-    disabled=st.session_state["current_folder"] == settings.DOCUMENTS_DIR,
+    # disabled=st.session_state["current_folder"] == settings.DOCUMENTS_DIR,
+    disabled=st.session_state["current_folder"] == st.session_state["uid"],
     type="primary",
 )
 if previous_folder_clicked:

@@ -1,8 +1,7 @@
 import streamlit as st
 
 from account import login_form, register_form, reset_password_form
-from utils.firebase import update_user_info_by_email
-from utils.rag import setup_tools
+from utils.firebase import initialize_firebase_app, update_user_info_by_email
 from utils.utils import display_message
 
 
@@ -11,6 +10,7 @@ def initialize_session_state():
     Initialize the session state to cache user information.
     """
     session_key_val = {
+        "uid": None,
         "name": None,
         "email": None,
         "logged_in": False,
@@ -63,7 +63,6 @@ def logout():
         button = st.form_submit_button("Log Out", use_container_width=True)
 
     if button:
-        st.session_state["logged_in"] = False
         # Remove the cache since the user has logged out
         for key in st.session_state.keys():
             st.session_state.pop(key, None)
@@ -123,8 +122,11 @@ def main():
 
     initialize_session_state()
 
+    # Initialize Firebase app
+    initialize_firebase_app()
+
     # Initialize Firebase app, setup LLM, vector database and retriever
-    setup_tools()
+    # setup_rag_tools()
 
     authentication_page = st.Page(page=authentication, title="Authentication")
 

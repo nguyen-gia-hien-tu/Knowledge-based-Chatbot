@@ -21,13 +21,16 @@ def register_form():
         if password == confirm_password:
             try:
                 user_info = create_new_user(email, password, name)
+                st.session_state["logged_in"] = True
+                st.session_state["sso"] = False
+                st.session_state["uid"] = user_info.uid
+                st.session_state["name"] = user_info.display_name
+                st.session_state["email"] = user_info.email
+
                 display_message(
                     type="success",
                     message=f"Successfully registered user with email: {email}",
                 )
-                st.session_state["logged_in"] = True
-                st.session_state["name"] = user_info.display_name
-                st.session_state["email"] = user_info.email
                 st.rerun()
             except Exception as e:
                 display_message(type="error", message=str(e))

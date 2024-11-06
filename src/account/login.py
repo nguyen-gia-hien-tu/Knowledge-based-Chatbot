@@ -32,7 +32,9 @@ def login_form():
 
     if submit_button:
         if email == "" or password == "":
-            display_message(type="warning", message="Please enter your email and password.")
+            display_message(
+                type="warning", message="Please enter your email and password."
+            )
         elif user_obj := authenticate_user_with_password(email, password):
             logger.info("*" * 100)
             logger.info("Logged in successfully!")
@@ -41,6 +43,7 @@ def login_form():
             if user_info := get_user_by_token(user_obj["idToken"]):
                 st.session_state["logged_in"] = True
                 st.session_state["sso"] = False
+                st.session_state["uid"] = user_info.uid
                 st.session_state["name"] = user_info.display_name
                 st.session_state["email"] = user_info.email
                 st.rerun()
@@ -124,6 +127,7 @@ def login_form():
 
         st.session_state["logged_in"] = True
         st.session_state["sso"] = True
+        st.session_state["uid"] = firebase_user.uid
         st.session_state["name"] = firebase_user.display_name
         st.session_state["email"] = firebase_user.email
 
