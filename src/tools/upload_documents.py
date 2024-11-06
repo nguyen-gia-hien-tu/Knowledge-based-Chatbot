@@ -36,7 +36,7 @@ def setup_fresh_retriever():
 
     # Clear the cache on the setup_retriever() function to let it run again
     setup_retriever.clear()
-    setup_retriever(index, embedding, st.session_state["uid"])
+    setup_retriever(index, embedding, st.session_state["uid"], st.session_state["uid"])
 
     logger.info("*" * 100)
     logger.info("Retriever is refreshed")
@@ -302,7 +302,7 @@ delete_all_clicked = container.button(
     ":x:",
     key="delete_all",
     disabled=st.session_state["current_folder"] == st.session_state["uid"],
-    type="primary"
+    type="primary",
 )
 if delete_all_clicked:
     delete_file_or_folder(st.session_state["current_folder"])

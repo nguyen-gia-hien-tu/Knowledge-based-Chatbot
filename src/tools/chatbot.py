@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 st.title("Knowledge-based Chatbot")
 
 # Setup LLM and Retriever
-llm, retriever = setup_rag_tools(folder_path=st.session_state["uid"])
+llm, retriever = setup_rag_tools(
+    namespace=st.session_state["uid"], folder_path=st.session_state["uid"]
+)
 
 # Initialize chat history
 if "messages" not in st.session_state:
