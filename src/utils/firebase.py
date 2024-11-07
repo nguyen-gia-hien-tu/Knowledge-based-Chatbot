@@ -228,7 +228,7 @@ def get_user_by_email(email: str) -> Optional[auth.UserRecord]:
         user: auth.UserRecord = auth.get_user_by_email(email)
     except Exception as e:
         logger.error("*" * 100)
-        logger.error(f"Error getting user by email: {e}")
+        logger.error(f"Error getting user by email in Firebase: {e}")
         logger.error("*" * 100)
         return None
 
@@ -286,6 +286,29 @@ def reset_password(email: str):
         logger.error(f"Error sending password reset email: {response.json()}")
 
     return
+
+
+def delete_user_by_uid(uid: str):
+    """
+    Function to delete a user from Firebase Authentication using the user's UID
+
+    Args:
+        uid (str):
+            The UID of the user to be deleted
+
+    Returns:
+        uid (str):
+            The UID of the user that is deleted. If an error occurs, return None
+    """
+    try:
+        auth.delete_user(uid)
+    except Exception as e:
+        logger.error("*" * 100)
+        logger.error(f"Error deleting user: {e}")
+        logger.error("*" * 100)
+        return None
+
+    return uid
 
 
 def get_file_from_storage(remote_path: str) -> Blob:
@@ -400,18 +423,14 @@ def upload_file_to_storage(uploaded_file: UploadedFile | Path, remote_path: str)
 def delete_blob_from_storage(remote_path: str):
     """
     Function to delete a file or folder from Firebase Storage
+    https://cloud.google.com/python/docs/reference/storage/latest/google.cloud.storage.blob.Blob#google_cloud_storage_blob_Blob_delete
 
     Args:
         remote_path (str):
             Path to the file or folder in Firebase Storage
     """
     bucket = storage.bucket()
-    # If remote_path is a folder, delete all files in the folder
-    if remote_path.endswith("/"):
-        blobs: Iterator[Blob] = bucket.list_blobs(prefix=remote_path.rstrip("/") + "/")
+    blobs: Iterator[Blob] = bucket.list_blobs(prefix=remote_path)
 
-        for blob in blobs:
-            blob.delete()
-    else:
-        blob = bucket.blob(remote_path)
+    for blob in blobs:
         blob.delete()

@@ -2,7 +2,7 @@ import streamlit as st
 
 from account import login_form, register_form, reset_password_form
 from utils.firebase import initialize_firebase_app, update_user_info_by_email
-from utils.utils import display_message
+from utils.utils import delete_account, display_message
 
 
 def initialize_session_state():
@@ -74,12 +74,14 @@ def account_settings():
     Display the account settings page where users can update their account
     information and password.
     """
-    settings_tab, update_password_tab = st.tabs(["Settings", "Update Password"])
+    account_settings_tab, update_password_tab, delete_account_tab = st.tabs(
+        ["Settings", "Update Password", "Delete Account"]
+    )
 
     ######################################################################
     # Settings tab
     ######################################################################
-    with settings_tab.form("settings_form"):
+    with account_settings_tab.form("settings_form"):
         st.markdown("## Settings")
         st.text_input("Email", value=st.session_state["email"], disabled=True)
         name = st.text_input("Name", value=st.session_state["name"])
@@ -108,6 +110,21 @@ def account_settings():
             display_message(
                 type="error", message="Passwords do not match. Please try again."
             )
+
+    ######################################################################
+    # Delete Account tab
+    ######################################################################
+    with delete_account_tab.form("delete_account_form"):
+        st.markdown(
+            f"<h2 style='text-align: center'>DELETE ACCOUNT</h2><br/>",
+            unsafe_allow_html=True,
+        )
+        delete_account_button = st.form_submit_button(
+            "Delete Account", use_container_width=True
+        )
+
+    if delete_account_button:
+        delete_account(st.session_state["uid"])
 
 
 def main():
