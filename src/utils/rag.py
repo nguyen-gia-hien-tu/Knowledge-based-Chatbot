@@ -223,11 +223,15 @@ def setup_rag_tools(namespace: str, folder_path: str):
 
 
 def setup_rag_chain(llm, retriever):
-    """Setup a RAG chain with a history-aware retriever and a question-answering system
+    """
+    Setup a RAG chain with a history-aware retriever and a question-answering
+    system. Do not cache this function since the chat_history constantly changes
+    with each human/AI message.
 
     Args:
-        llm (ChatGoogleGenerativeAI): The Large Language Model to answer questions
-        retriever (VectorStoreRetriever): The retriever to retrieve context
+        llm (ChatGoogleGenerativeAI): The Large Language Model to answer
+        questions retriever (VectorStoreRetriever): The retriever to retrieve
+        context
 
     Returns:
         Runnable: The RAG chain Runnable
@@ -244,7 +248,7 @@ def setup_rag_chain(llm, retriever):
     contextualized_question_prompt = ChatPromptTemplate.from_messages(
         [
             ("system", contextualized_question_system_prompt),
-            MessagesPlaceholder("chat_history", n_messages=10),
+            MessagesPlaceholder("chat_history", n_messages=20),
             ("human", "{input}"),
         ]
     )
@@ -275,3 +279,35 @@ def setup_rag_chain(llm, retriever):
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
     return rag_chain
+
+
+def delete_namespace_in_vector_database(namespace: str):
+    """
+    Delete the namespace in the vector database. This also cleans up
+
+    Args:
+        namespace (str): _description_
+    """
+
+    # Get the Embedding
+    hf_embedding = setup_embedding()
+
+    # Get the Pinecone index
+    pinecone_index = setup_pinecone_index()
+
+    # Get the vector store
+    vector_store = PineconeVectorStore(
+        index=pinecone_index, embedding=hf_embedding, namespace=namespace
+    )
+
+    # Get the record manager
+    record_manager_namespace = f"pinecone/{settings.VECTOR_DB_INDEX_NAME}/{namespace}"
+    record_manager = SQLRecordManager(
+        namespace=record_manager_namespace, db_url=settings.RECORD_MANAGER_DB_URL
+    )
+
+    # Delete related cache in the record manager
+    index([], record_manager, vector_store, cleanup="full", source_id_key="source")
+
+    # Delete the namespace in the Pinecone vector database
+    pinecone_index.delete(namespace=namespace, delete_all=True)
