@@ -51,20 +51,20 @@ def setup_llm():
 
 
 @st.cache_resource()
-def setup_embedding():
+def setup_embedding(model_name: str = "BAAI/bge-large-en-v1.5"):
     """Create a Hugging Face BGE Embedding model.
 
     Returns:
         HuggingFaceBgeEmbeddings: The Hugging Face BGE Embedding model
     """
-    model_name = "BAAI/bge-large-en-v1.5"
+    model_name = "BAAI/bge-large-en-v1."
     model_kwargs = {"device": "cpu"}
     encode_kwargs = {"normalize_embeddings": True}
-    hf_embedding = HuggingFaceBgeEmbeddings(
+    bge_embedding = HuggingFaceBgeEmbeddings(
         model_name=model_name, model_kwargs=model_kwargs, encode_kwargs=encode_kwargs
     )
 
-    return hf_embedding
+    return bge_embedding
 
 
 @st.cache_resource()
@@ -244,13 +244,13 @@ def setup_rag_tools(namespace: str, folder_path: str):
     llm = setup_llm()
 
     # Create an Embedding
-    hf_embedding = setup_embedding()
+    bge_embedding = setup_embedding()
 
     # Create a Pinecone index
     index = setup_pinecone_index()
 
     # Create a retriever
-    retriever = setup_retriever(llm, index, hf_embedding, namespace, folder_path)
+    retriever = setup_retriever(llm, index, bge_embedding, namespace, folder_path)
 
     return llm, retriever
 
@@ -314,6 +314,7 @@ def setup_rag_chain(llm, retriever):
     return rag_chain
 
 
+@st.cache_resource()
 def delete_namespace_in_vector_database(namespace: str):
     """
     Delete the namespace in the vector database. This also cleans up
@@ -323,14 +324,14 @@ def delete_namespace_in_vector_database(namespace: str):
     """
 
     # Get the Embedding
-    hf_embedding = setup_embedding()
+    bge_embedding = setup_embedding()
 
     # Get the Pinecone index
     pinecone_index = setup_pinecone_index()
 
     # Get the vector store
     vector_store = PineconeVectorStore(
-        index=pinecone_index, embedding=hf_embedding, namespace=namespace
+        index=pinecone_index, embedding=bge_embedding, namespace=namespace
     )
 
     # Get the record manager
