@@ -7,6 +7,7 @@ from typing import List
 import streamlit as st
 from google.cloud.storage import Blob
 
+from configuration import settings
 from utils.firebase import (
     create_folder_in_storage,
     delete_blob_from_storage,
@@ -14,7 +15,13 @@ from utils.firebase import (
     get_file_from_storage,
     upload_file_to_storage,
 )
-from utils.rag import setup_embedding, setup_llm, setup_pinecone_index, setup_retriever
+from utils.rag import (
+    setup_embedding,
+    setup_llm,
+    setup_lotr,
+    setup_pinecone_index,
+    setup_retriever,
+)
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -32,14 +39,16 @@ def setup_fresh_retriever():
 
     # Get the LLM, the Pinecone index and the embedding model
     llm = setup_llm()
-    index = setup_pinecone_index()
+    index = setup_pinecone_index(settings.VECTOR_DB_INDEX_NAME)
     embedding = setup_embedding()
 
     # Clear the cache on the setup_retriever() function to let it run again
-    setup_retriever.clear()
-    setup_retriever(
-        llm, index, embedding, st.session_state["uid"], st.session_state["uid"]
-    )
+    setup_lotr.clear()
+    setup_lotr(llm, st.session_state["uid"], st.session_state["uid"])
+    # setup_retriever.clear()
+    # setup_retriever(
+    #     llm, index, embedding, st.session_state["uid"], st.session_state["uid"]
+    # )
 
     logger.info("*" * 100)
     logger.info("Retriever is refreshed")

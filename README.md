@@ -5,13 +5,20 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
 ## End-to-End Steps to Setup the Chatbot
 
 
-### Copy `.env.example` to `.env` and `record_manager_cache.db.example` to `record_manager_cache.db`
+### Copy `.env.example` to `.env`
 
 - Copy and Paste the file `.env.example` and rename the new file to `.env`
 
-- Copy and Paste the file `record_manager_cache.db.example` and rename the new file to `record_manager_cache.db`
-
 - We will modify the file `.env` to store API keys and configuration later on
+
+
+### Copy `record_manager_cache.db.example` to `record_manager_cache.db` and `record_manager_cache_2.db`
+
+- Copy and Paste the file `record_manager_cache.db.example` and rename the new
+  file to `record_manager_cache.db`
+
+- Copy and Paste (for another time) the file `record_manager_cache.db.example`
+  and rename the new file to `record_manager_cache_2.db`
 
 
 ### Create a Firebase Project

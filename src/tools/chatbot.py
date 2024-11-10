@@ -8,6 +8,7 @@ from utils.rag import setup_rag_chain, setup_rag_tools
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
+
 # Set up page configuration
 st.title("Knowledge-based Chatbot")
 

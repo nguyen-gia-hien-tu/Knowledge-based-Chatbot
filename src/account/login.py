@@ -11,7 +11,7 @@ from utils.firebase import (
 )
 from utils.utils import display_message
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
 
@@ -119,16 +119,22 @@ def login_form():
     auth_code = st.query_params.get("code")
 
     if auth_code:
-        firebase_user = authenticate_user_with_google_oidc(auth_code)
+        try:
+            # Try to authenticate the user with the obtained Google OIDC auth code
+            firebase_user = authenticate_user_with_google_oidc(auth_code)
 
-        logger.info("*" * 100)
-        logger.info("Succesfully logged in with Google")
-        logger.info("*" * 100)
+            logger.info("*" * 100)
+            logger.info("Succesfully logged in with Google")
+            logger.info("*" * 100)
 
-        st.session_state["logged_in"] = True
-        st.session_state["sso"] = True
-        st.session_state["uid"] = firebase_user.uid
-        st.session_state["name"] = firebase_user.display_name
-        st.session_state["email"] = firebase_user.email
+            st.session_state["logged_in"] = True
+            st.session_state["sso"] = True
+            st.session_state["uid"] = firebase_user.uid
+            st.session_state["name"] = firebase_user.display_name
+            st.session_state["email"] = firebase_user.email
 
-        st.rerun()
+            st.rerun()
+        except Exception as e:
+            logger.error("*" * 100)
+            logger.error(f"Error logging in with Google: {e}")
+            logger.error("*" * 100)

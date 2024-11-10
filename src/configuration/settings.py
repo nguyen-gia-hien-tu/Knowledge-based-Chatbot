@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     VECTOR_DB_INDEX_NAME: str = "knowledge-based-chatbot-index"
     # Record manager database URL
     RECORD_MANAGER_DB_URL: str = "sqlite:///record_manager_cache.db"
+    # Vector database index name 2
+    VECTOR_DB_INDEX_NAME_2: str = "knowledge-based-chatbot-index-2"
+    # Record manager database URL 2
+    RECORD_MANAGER_DB_URL_2: str = "sqlite:///record_manager_cache_2.db"
 
     # Firebase settings
     FIREBASE_API_KEY: str

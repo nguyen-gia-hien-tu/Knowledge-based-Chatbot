@@ -10,6 +10,7 @@ firebase-*.json
 
 # Vector Database Record Manager
 record_manager_cache.db
+record_manager_cache_2.db
 
 # Python
 __pycache__/
