@@ -14,7 +14,7 @@ from utils.firebase import (
     get_file_from_storage,
     upload_file_to_storage,
 )
-from utils.rag import setup_embedding, setup_pinecone_index, setup_retriever
+from utils.rag import setup_embedding, setup_llm, setup_pinecone_index, setup_retriever
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -30,13 +30,16 @@ def setup_fresh_retriever():
     logger.info("*" * 100)
     logger.info("Setting up a fresh retriever")
 
-    # Get the Pinecone index and the embedding model
+    # Get the LLM, the Pinecone index and the embedding model
+    llm = setup_llm()
     index = setup_pinecone_index()
     embedding = setup_embedding()
 
     # Clear the cache on the setup_retriever() function to let it run again
     setup_retriever.clear()
-    setup_retriever(index, embedding, st.session_state["uid"], st.session_state["uid"])
+    setup_retriever(
+        llm, index, embedding, st.session_state["uid"], st.session_state["uid"]
+    )
 
     logger.info("*" * 100)
     logger.info("Retriever is refreshed")

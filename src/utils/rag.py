@@ -8,7 +8,14 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain.indexes import SQLRecordManager, index
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import (
+    DocumentCompressorPipeline,
+    EmbeddingsFilter,
+)
+from langchain.retrievers.multi_query import MultiQueryRetriever
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_transformers import EmbeddingsRedundantFilter
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.vectorstores import VectorStoreRetriever
@@ -91,6 +98,7 @@ def setup_pinecone_index():
 
 @st.cache_resource()
 def setup_retriever(
+    _llm: ChatGoogleGenerativeAI,
     _index: Index,
     _embedding: HuggingFaceBgeEmbeddings,
     namespace: str,
@@ -186,10 +194,35 @@ def setup_retriever(
     logger.info("Finished running index function to `full` cleanup")
     logger.info("*" * 100)
 
-    # Create a retriever
-    retriever = vector_store.as_retriever()
+    ######################################################################
+    # Combine compressors and document transformers together
+    ######################################################################
 
-    return retriever
+    # Remove redundant documents
+    redundant_filter = EmbeddingsRedundantFilter(embeddings=_embedding)
+    # Filter based on relevance to the query
+    relevant_filter = EmbeddingsFilter(embeddings=_embedding, similarity_threshold=0.76)
+
+    # Create a compressor pipline by first splitting our docs into smaller
+    # chunks, then removing redundant documents, and then filtering based on
+    # relevance to the query
+    pipeline_compressor = DocumentCompressorPipeline(
+        transformers=[text_splitter, redundant_filter, relevant_filter]
+    )
+
+    # Create a base retriever
+    retriever = vector_store.as_retriever()
+    # Create a multi-query retriever to generate different queries for better
+    # results https://python.langchain.com/docs/how_to/MultiQueryRetriever/
+    multi_query_retriever = MultiQueryRetriever.from_llm(retriever=retriever, llm=_llm)
+    # Create a compressor retriever from the pipline compressor and the
+    # multi-query retriever so that only relevant information is returned
+    # https://python.langchain.com/docs/how_to/contextual_compression/#stringing-compressors-and-document-transformers-together
+    compression_retriever = ContextualCompressionRetriever(
+        base_compressor=pipeline_compressor, base_retriever=multi_query_retriever
+    )
+
+    return compression_retriever
 
 
 @st.cache_resource()
@@ -217,7 +250,7 @@ def setup_rag_tools(namespace: str, folder_path: str):
     index = setup_pinecone_index()
 
     # Create a retriever
-    retriever = setup_retriever(index, hf_embedding, namespace, folder_path)
+    retriever = setup_retriever(llm, index, hf_embedding, namespace, folder_path)
 
     return llm, retriever
 
