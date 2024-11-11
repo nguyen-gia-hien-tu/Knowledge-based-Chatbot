@@ -37,7 +37,7 @@ def login_form():
             )
         elif user_obj := authenticate_user_with_password(email, password):
             logger.info("*" * 100)
-            logger.info("Logged in successfully!")
+            logger.info("Successfully logged in with email and password!")
             logger.info("*" * 100)
 
             if user_info := get_user_by_token(user_obj["idToken"]):
@@ -63,8 +63,10 @@ def login_form():
         unsafe_allow_html=True,
     )
 
-    with open(settings.GOOGLE_OIDC_CLIENT_SECRET_FILE) as f:
-        client_secret = json.load(f)
+    # with open(settings.GOOGLE_OIDC_CLIENT_SECRET_FILE) as f:
+    #     client_secret = json.load(f)
+
+    client_secret = json.loads(settings.GOOGLE_OIDC_CLIENT_SECRET)
 
     client_id = client_secret["web"]["client_id"]
     google_oauth_url = f"https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={client_id}&redirect_uri={settings.GOOGLE_OIDC_REDIRECT_URI}&scope=openid%20email%20profile"
@@ -122,7 +124,7 @@ def login_form():
         firebase_user = authenticate_user_with_google_oidc(auth_code)
 
         logger.info("*" * 100)
-        logger.info("Succesfully logged in with Google")
+        logger.info("Succesfully logged in with Google!")
         logger.info("*" * 100)
 
         st.session_state["logged_in"] = True

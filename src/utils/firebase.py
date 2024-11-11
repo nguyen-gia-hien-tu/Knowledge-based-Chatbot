@@ -1,3 +1,4 @@
+import json
 import logging
 import secrets
 import string
@@ -25,7 +26,7 @@ def initialize_firebase_app():
     """Function to initialize Firebase connection"""
 
     if not firebase_admin._apps:
-        cred = credentials.Certificate(settings.FIREBASE_SERVICE_ACCOUNT_FILE)
+        cred = credentials.Certificate(json.loads(settings.FIREBASE_SERVICE_ACCOUNT))
         firebase_admin.initialize_app(
             cred, {"storageBucket": settings.FIREBASE_STORAGE_BUCKET_NAME}
         )
@@ -131,8 +132,8 @@ def authenticate_user_with_google_oidc(auth_code: str) -> auth.UserRecord:
             The user information from Firebase Authentication system
     """
     # Use authorization code to fetch token from Google
-    google_flow = flow.Flow.from_client_secrets_file(
-        settings.GOOGLE_OIDC_CLIENT_SECRET_FILE,
+    google_flow = flow.Flow.from_client_config(
+        json.loads(settings.GOOGLE_OIDC_CLIENT_SECRET),
         scopes=[
             "openid",
             "https://www.googleapis.com/auth/userinfo.profile",
@@ -155,12 +156,6 @@ def authenticate_user_with_google_oidc(auth_code: str) -> auth.UserRecord:
     # If the user already has an account using the same email, then we get the
     # user info from the Firebase Authentication system.
     firebase_user = get_user_by_email(google_user["email"])
-
-    logger.info("*" * 100)
-    logger.info(
-        f"Firebase User: {firebase_user.display_name if firebase_user else None}"
-    )
-    logger.info("*" * 100)
 
     # Otherwise, although the user has signed in with Google, we still need
     # to create a new user in the Firebase Authentication system to be

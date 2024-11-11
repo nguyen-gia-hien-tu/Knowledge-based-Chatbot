@@ -138,10 +138,6 @@ def setup_retriever(
         )
     )
 
-    logger.info("*" * 100)
-    logger.info(f"All files only (no folders): {[file.name for file in files]}")
-    logger.info("*" * 100)
-
     for file in files:
         # Get metadata from the file
         metadata = file.metadata
@@ -175,8 +171,6 @@ def setup_retriever(
     splits = text_splitter.split_documents(documents)
 
     # Setup indexing function with `full` deletion mode
-    logger.info("*" * 100)
-    logger.info(f"Number of splits: {len(splits)}")
     logger.info("*" * 100)
     logger.info("Running index function to `full` cleanup")
     logger.info("*" * 100)
