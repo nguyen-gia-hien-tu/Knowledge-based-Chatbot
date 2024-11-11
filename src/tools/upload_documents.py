@@ -52,7 +52,6 @@ def initialize_session_state():
         if not get_file_from_storage(st.session_state["uid"]):
             create_folder_in_storage(st.session_state["uid"])
 
-        # st.session_state["current_folder"] = settings.DOCUMENTS_DIR
         st.session_state["current_folder"] = st.session_state["uid"]
 
 
@@ -337,7 +336,6 @@ previous_folder_clicked = container.button(
     label="../",
     icon=":material/folder_open:",
     use_container_width=True,
-    # disabled=st.session_state["current_folder"] == settings.DOCUMENTS_DIR,
     disabled=st.session_state["current_folder"] == st.session_state["uid"],
     type="primary",
 )

@@ -22,11 +22,17 @@ logger = logging.getLogger(__name__)
 FIREBASE_AUTH_BASE_URL = "https://identitytoolkit.googleapis.com/v1/accounts:"
 
 
-def initialize_firebase_app():
-    """Function to initialize Firebase connection"""
+def initialize_firebase_app(firebase_service_account: Dict[str, str]):
+    """
+    Initialize the Firebase app
+
+    Args:
+        firebase_service_account (Dict[str, str]):
+            The Firebase service account JSON object in dictionary format
+    """
 
     if not firebase_admin._apps:
-        cred = credentials.Certificate(json.loads(settings.FIREBASE_SERVICE_ACCOUNT))
+        cred = credentials.Certificate(firebase_service_account)
         firebase_admin.initialize_app(
             cred, {"storageBucket": settings.FIREBASE_STORAGE_BUCKET_NAME}
         )
@@ -114,7 +120,10 @@ def authenticate_user_with_password(
     return response.json()
 
 
-def authenticate_user_with_google_oidc(auth_code: str) -> auth.UserRecord:
+def authenticate_user_with_google_oidc(
+    auth_code: str,
+    google_oidc_client_secret: Dict[str, str],
+) -> auth.UserRecord:
     """
     Authenticate a user with Google OIDC using Google OAuth2.0 flow. If the user
     already has an account using the same email from the Firebase Authentication
@@ -126,6 +135,8 @@ def authenticate_user_with_google_oidc(auth_code: str) -> auth.UserRecord:
         auth_code (str):
             The authentication code obtained when Google redirects back to the
             endpoint after the user signs in with Google
+        google_oidc_client_secret (Dict[str, str]):
+            The Google OIDC client secret JSON object
 
     Returns:
         auth.UserRecord:
@@ -133,7 +144,7 @@ def authenticate_user_with_google_oidc(auth_code: str) -> auth.UserRecord:
     """
     # Use authorization code to fetch token from Google
     google_flow = flow.Flow.from_client_config(
-        json.loads(settings.GOOGLE_OIDC_CLIENT_SECRET),
+        google_oidc_client_secret,
         scopes=[
             "openid",
             "https://www.googleapis.com/auth/userinfo.profile",
@@ -269,7 +280,8 @@ def reset_password(email: str):
     https://firebase.google.com/docs/reference/rest/auth#section-send-password-reset-email
 
     Args:
-        email (str): The email address to send the password reset email to
+        email (str):
+            The email address to send the password reset email to
     """
     url = f"{FIREBASE_AUTH_BASE_URL}sendOobCode?key={settings.FIREBASE_API_KEY}"
     body = {
