@@ -19,7 +19,7 @@ from pinecone import Index, Pinecone, ServerlessSpec
 from streamlit.runtime.caching import CacheResourceAPI
 
 from configuration import settings
-from utils.firebase import get_blobs_in_folder_from_storage, initialize_firebase_app
+from utils.firebase import get_blobs_in_folder_from_storage
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
@@ -130,7 +130,6 @@ def setup_retriever(
     documents = []
     files = list(
         get_blobs_in_folder_from_storage(
-            # folder_path=settings.DOCUMENTS_DIR,
             folder_path=folder_path,
             return_files=True,
             return_folders=False,
@@ -198,8 +197,6 @@ def setup_rag_tools(namespace: str, folder_path: str):
         (ChatGoogleGenerativeAI, VectorStoreRetriever): The Large Language Model
             and the Retriever
     """
-    # Initialize Firebase app
-    initialize_firebase_app()
 
     # Create an LLM
     llm = setup_llm()

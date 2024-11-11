@@ -13,6 +13,4 @@ services:
       - ./src:/app/src
       - ./.streamlit:/app/.streamlit
       - ./.env:/app/.env
-      - ./firebase-service-account.json:/app/firebase-service-account.json
-      - ./firebase-google-oidc-client-secret.json:/app/firebase-google-oidc-client-secret.json
       - ./record_manager_cache.db:/app/record_manager_cache.db
