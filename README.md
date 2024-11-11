@@ -28,12 +28,18 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
 - Then, navigate to the **"Service accounts"** tab and click **"Generate new
   private key"** button to create a new service account
 
-- Then, name the file `firebase-service-account.json` and put it at the root of
-  the repository (where you see the `src/` folder)
+- Download the file to a location of your choice (since we only need the content
+  of the file, not the file location) and copy the content of the file to put it
+  as the value of the `FIREBASE_SERVICE_ACCOUNT` key in the `.env` file
 
-- Ensure that the values for both `GOOGLE_APPLICATION_CREDENTIALS` and
-  `FIREBASE_SERVICE_ACCOUNT_FILE` in the `.env` file are
-  `firebase-service-account.json`
+  - This `FIREBASE_SERVICE_ACCOUNT` environment variable is used to initialize
+    the Firebase Admin SDK
+
+  - It is also used to programmatically create the
+    `firebase-service-account.json` file
+
+  - This file is referred by the `GOOGLE_APPLICATION_CREDENTIALS` environment
+    variable, which is used to instantiate the connection for Google Gemini API
 
 - Now, on the same "Project settings" page, go to the **"General"** tab and
   locate the **"Web API Key"** entry
@@ -89,12 +95,12 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
 - On the **"Client secrets"** section, there is a client secret shown along with
   a "Download JSON" button
 
-- Click on the download button to download the file to the root of the
-  repository with the name **"firebase-google-oidc-client-secret.json"**
+- Download the file to a location of your choice (since we only need the content
+  of the file, not the file location) and copy the content of the file to put as
+  the value of the `GOOGLE_OIDC_CLIENT_SECRET` key in the `.env` file
 
-- Make sure the value of the key `GOOGLE_OIDC_CLIENT_SECRET_FILE` in the `.env`
-  file has the value of `firebase-google-oidc-client-secret.json`, which is the
-  name of the client secret file above
+  - This `GOOGLE_OIDC_CLIENT_SECRET` environment variable is used for the
+    "Sign-in with Google" feature using OAuth2 Flow
 
 - Continue on this credentials page, locate the **"Authorized redirect URIs"**
   section
@@ -105,11 +111,12 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
   - This is the URL with the port number where our Streamlit knowledge-based
     chatbot application locally runs on
 
-  - When deploying to an actual hosting site, we will need to add that URL to
-    the "Authorized redirect URIs" section
+  - **_NOTE_:** When deploying to an actual hosting site, we will need to add
+    that URL to the "Authorized redirect URIs" section
 
 - Make sure the `GOOGLE_OIDC_REDIRECT_URI` in the `.env` file has the value of
-  `http://localhost:8080` (for local development)
+  `http://localhost:8080` for local development and the actual URL when
+  deploying
 
 
 ### Create a Gemini AI API Key to Call the Gemini Model

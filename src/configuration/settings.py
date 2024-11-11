@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     SRC_ROOT: Path = Path(__file__).parent.parent
 
     # Settings for Single Sign-On (SSO) with Google
-    GOOGLE_OIDC_CLIENT_SECRET_FILE: str
+    GOOGLE_OIDC_CLIENT_SECRET: str
     GOOGLE_OIDC_REDIRECT_URI: str = "http://localhost:8080"
 
     # Path to the knowledge documents directory
@@ -20,6 +20,5 @@ class Settings(BaseSettings):
 
     # Firebase settings
     FIREBASE_API_KEY: str
-    GOOGLE_APPLICATION_CREDENTIALS: str
-    FIREBASE_SERVICE_ACCOUNT_FILE: str
+    FIREBASE_SERVICE_ACCOUNT: str
     FIREBASE_STORAGE_BUCKET_NAME: str
