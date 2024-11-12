@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 
 import streamlit as st
@@ -7,9 +6,6 @@ import streamlit as st
 from account import login_form, register_form, reset_password_form
 from utils.firebase import initialize_firebase_app, update_user_info_by_email
 from utils.utils import delete_account, display_message
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 def initialize_session_state():
