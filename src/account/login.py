@@ -67,7 +67,7 @@ def login_form():
     redirect_uri = settings.GOOGLE_OIDC_REDIRECT_URI
 
     client_id = client_secret["web"]["client_id"]
-    google_oauth_url = f"https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={client_id}&redirect_uri={redirect_uri}&scope=openid%20email%20profile"
+    google_oauth_url = f"https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={client_id}&redirect_uri={redirect_uri}&scope=openid%20email%20profile&output=embed"
 
     google_button_css = """
         <style>
@@ -107,12 +107,12 @@ def login_form():
     google_button_html = f"""
         <!-- Google Button -->
         <div style="text-align: center">
-        <a href="{google_oauth_url}" target="_self" class="google-btn">
+        <a style="color: black; font-weight: bold" href="{google_oauth_url}" target="_top" class="google-btn">
             <img src="https://www.gstatic.com/images/branding/product/1x/gsa_48dp.png" alt="Google logo">
             Sign in with Google
         </a>
         </div>
-        """
+    """
 
     st.markdown(google_button_html, unsafe_allow_html=True)
 
