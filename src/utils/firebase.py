@@ -1,3 +1,5 @@
+import base64
+import json
 import logging
 import secrets
 import string
@@ -11,6 +13,7 @@ from firebase_admin.exceptions import FirebaseError
 from google.cloud.storage import Blob
 from google_auth_oauthlib import flow
 from streamlit.runtime.uploaded_file_manager import UploadedFile
+from streamlit_oauth import OAuth2Component
 
 from configuration import settings
 
@@ -182,6 +185,85 @@ def authenticate_user_with_google_oidc(
         )
 
     return firebase_user
+
+
+def authenticate_user_with_google_using_streamlit_oauth(
+    client_id: str,
+    client_secret: str,
+    redirect_uri: str,
+) -> auth.UserRecord:
+    """
+    Authenticate a user with Google OIDC using the `streamlit-oauth` library. If
+    the user already has an account using the same email from the Firebase
+    Authentication, then we get the user info from Firebase. Otherwise, we
+    create a new user in the Firebase.
+    https://github.com/dnplus/streamlit-oauth/blob/main/examples/google.py
+
+    Args:
+        client_id (str):
+            The Google OIDC client ID
+        client_secret (str):
+            The Google OIDC client secret
+        redirect_uri (str):
+            The redirect URI after the user signs in with Google
+
+    Returns:
+        auth.UserRecord:
+            The user information from Firebase Authentication system
+    """
+    oauth2 = OAuth2Component(
+        client_id,
+        client_secret,
+        "https://accounts.google.com/o/oauth2/v2/auth",
+        "https://oauth2.googleapis.com/token",
+        "https://oauth2.googleapis.com/token",
+        "https://oauth2.googleapis.com/toketps://oauth2.googleapis.com/revoke",
+    )
+
+    result = oauth2.authorize_button(
+        name="Sign in with Google",
+        icon="https://www.google.com.tw/favicon.ico",
+        redirect_uri=redirect_uri,
+        scope="openid email profile",
+        key="google",
+        extras_params={"prompt": "consent", "access_type": "offline"},
+        use_container_width=True,
+        pkce="S256",
+    )
+
+    if result:
+        # decode the id_token jwt and get the user's email address
+        id_token: str = result["token"]["id_token"]
+        # verify the signature is an optional step for security
+        payload = id_token.split(".")[1]
+        # add padding to the payload if needed
+        payload += "=" * (-len(payload) % 4)
+        # Load the payload into a dict representing user info
+        google_user = json.loads(base64.b64decode(payload))
+
+        # If the user already has an account using the same email, then we get the
+        # user info from the Firebase Authentication system.
+        firebase_user = get_user_by_email(google_user["email"])
+
+        # Otherwise, although the user has signed in with Google, we still need
+        # to create a new user in the Firebase Authentication system to be
+        # compatible with the rest of the application.
+        if firebase_user is None:
+
+            # Generating a good password following the guidelines from
+            # https://csguide.cs.princeton.edu/accounts/passwords
+            alphabet = string.ascii_letters + string.digits + string.punctuation
+            generated_password = "".join(secrets.choice(alphabet) for _ in range(20))
+
+            logger.info("*" * 100)
+            logger.info(f"Generated password: {generated_password}")
+            logger.info("*" * 100)
+
+            firebase_user = create_new_user(
+                google_user["email"], generated_password, google_user["name"]
+            )
+
+        return firebase_user
 
 
 def get_user_by_token(id_token: str) -> Optional[auth.UserRecord]:

@@ -1,11 +1,11 @@
-import json
 import logging
 
 import streamlit as st
+from streamlit.runtime.secrets import Secrets
 
 from configuration import settings
 from utils.firebase import (
-    authenticate_user_with_google_oidc,
+    authenticate_user_with_google_using_streamlit_oauth,
     authenticate_user_with_password,
     get_user_by_token,
 )
@@ -59,78 +59,105 @@ def login_form():
     # Google Sign-in Login
     #################################################################
     st.markdown(
-        f"<h4 style='text-align: center'>Or log in with service provider</h4>",
+        f"<h4 style='text-align: center'>Or log in with service provider</h4><br />",
         unsafe_allow_html=True,
     )
 
-    client_secret = st.secrets["GOOGLE_OIDC_CLIENT_SECRET"]
+    # Get the client ID and client secret strings from the Streamlit secrets
+    # We don't need the whole JSON object for streamlit-oauth
+    client_secret_obj: Secrets = st.secrets["GOOGLE_OIDC_CLIENT_SECRET"]
+    client_id = client_secret_obj["web"]["client_id"]
+    client_secret = client_secret_obj["web"]["client_secret"]
+    # Get the redirect URI to redirect the user back to the Streamlit app
     redirect_uri = settings.GOOGLE_OIDC_REDIRECT_URI
 
-    client_id = client_secret["web"]["client_id"]
-    google_oauth_url = f"https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id={client_id}&redirect_uri={redirect_uri}&scope=openid%20email%20profile&output=embed"
+    # Authenticate the user with Google using streamlit-oauth
+    firebase_user = authenticate_user_with_google_using_streamlit_oauth(
+        client_id, client_secret, redirect_uri
+    )
 
-    google_button_css = """
-        <style>
-            /* Container for the button */
-            .google-btn {
-                display: inline-block;
-                align-items: center;
-                padding: 10px 15px;
-                border: 1px solid #4285f4;
-                border-radius: 5px;
-                background-color: #cacfd2;
-                cursor: pointer;
-                text-decoration: none;
-                color: #00ffff;
-                font-family: Arial, sans-serif;
-                font-weight: 500;
-                font-size: 16px;
-                transition: background-color 0.3s ease;
-            }
-
-            /* Google logo */
-            .google-btn img {
-                width: 20px;
-                height: 20px;
-                margin-right: 10px;
-            }
-
-            /* Hover effect */
-            .google-btn:hover {
-                background-color: #f0f0f0;
-            }
-        </style>
-        """
-
-    st.markdown(google_button_css, unsafe_allow_html=True)
-
-    google_button_html = f"""
-        <!-- Google Button -->
-        <div style="text-align: center">
-        <a style="color: black; font-weight: bold" href="{google_oauth_url}" target="_top" class="google-btn">
-            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_48dp.png" alt="Google logo">
-            Sign in with Google
-        </a>
-        </div>
-    """
-
-    st.markdown(google_button_html, unsafe_allow_html=True)
-
-    auth_code = st.query_params.get("code")
-
-    if auth_code:
-        firebase_user = authenticate_user_with_google_oidc(
-            auth_code, st.secrets["GOOGLE_OIDC_CLIENT_SECRET"]
-        )
-
-        logger.info("*" * 100)
-        logger.info("Succesfully logged in with Google!")
-        logger.info("*" * 100)
-
+    if firebase_user:
         st.session_state["logged_in"] = True
         st.session_state["sso"] = True
         st.session_state["uid"] = firebase_user.uid
         st.session_state["name"] = firebase_user.display_name
         st.session_state["email"] = firebase_user.email
-
         st.rerun()
+
+    ############################################################################
+    # Start - Implementation using Google OAuth Library `google_auth_oauthlib`
+    ############################################################################
+    # google_oauth_url = (
+    #     f"https://accounts.google.com/o/oauth2/v2/auth?response_type=code&"
+    #     f"client_id={client_id}&redirect_uri={redirect_uri}&"
+    #     f"scope=openid%20email%20profile"
+    # )
+
+    # google_button_css = """
+    #     <style>
+    #         /* Container for the button */
+    #         .google-btn {
+    #             display: inline-block;
+    #             align-items: center;
+    #             padding: 10px 15px;
+    #             border: 1px solid #4285f4;
+    #             border-radius: 5px;
+    #             background-color: #cacfd2;
+    #             cursor: pointer;
+    #             text-decoration: none;
+    #             color: #00ffff;
+    #             font-family: Arial, sans-serif;
+    #             font-weight: 500;
+    #             font-size: 16px;
+    #             transition: background-color 0.3s ease;
+    #         }
+
+    #         /* Google logo */
+    #         .google-btn img {
+    #             width: 20px;
+    #             height: 20px;
+    #             margin-right: 10px;
+    #         }
+
+    #         /* Hover effect */
+    #         .google-btn:hover {
+    #             background-color: #f0f0f0;
+    #         }
+    #     </style>
+    #     """
+
+    # st.markdown(google_button_css, unsafe_allow_html=True)
+
+    # google_button_html = f"""
+    #     <!-- Google Button -->
+    #     <div style="text-align: center">
+    #     <a style="color: black; font-weight: bold" target="_self" href="{google_oauth_url}" class="google-btn">
+    #         <img src="https://www.gstatic.com/images/branding/product/1x/gsa_48dp.png" alt="Google logo">
+    #         Sign in with Google
+    #     </a>
+    #     </div>
+    # """
+
+    # st.markdown(google_button_html, unsafe_allow_html=True)
+
+    # auth_code = st.query_params.get("code")
+
+    # if auth_code:
+    #     firebase_user = authenticate_user_with_google_oidc(
+    #         auth_code, st.secrets["GOOGLE_OIDC_CLIENT_SECRET"]
+    #     )
+
+    #     logger.info("*" * 100)
+    #     logger.info("Succesfully logged in with Google!")
+    #     logger.info("*" * 100)
+
+    #     st.session_state["logged_in"] = True
+    #     st.session_state["sso"] = True
+    #     st.session_state["uid"] = firebase_user.uid
+    #     st.session_state["name"] = firebase_user.display_name
+    #     st.session_state["email"] = firebase_user.email
+
+    #     st.rerun()
+    ############################################################################
+    # End - Implementation using Google OAuth Library `google_auth_oauthlib`
+    ############################################################################

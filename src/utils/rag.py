@@ -16,6 +16,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_pinecone import PineconeVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pinecone import Index, Pinecone, ServerlessSpec
+from pinecone.core.openapi.shared.exceptions import NotFoundException
 from streamlit.runtime.caching import CacheResourceAPI
 
 from configuration import settings
@@ -185,17 +186,47 @@ def setup_retriever(
     return retriever
 
 
-@st.cache_resource()
-def setup_rag_tools(namespace: str, folder_path: str):
-    """Setup Firebase connection, LLM, Embedding, Pinecone Index, and Retriever
+def setup_fresh_retriever(namespace: str, folder_path: str):
+    """
+    Set up a fresh retriever by clearing the cache and calling the
+    setup_retriever function again
 
     Args:
-        namespace (str): The Pinecone namespace to search for documents
-        folder_path (str): The folder path to load documents from
+        namespace (str):
+            The Pinecone namespace to search for documents
+        folder_path (str):
+            The folder path to load documents from
+    """
+    logger.info("*" * 100)
+    logger.info("Setting up a fresh retriever by clearing cache")
+
+    # Get the Pinecone index and the embedding model
+    index = setup_pinecone_index()
+    embedding = setup_embedding()
+
+    # Clear the cache on the setup_retriever() function to let it run again
+    setup_retriever.clear()
+    setup_retriever(index, embedding, namespace, folder_path)
+
+    logger.info("*" * 100)
+    logger.info("Retriever is refreshed")
+    logger.info("*" * 100)
+
+
+@st.cache_resource()
+def setup_rag_tools(namespace: str, folder_path: str):
+    """
+    Setup Firebase connection, LLM, Embedding, Pinecone Index, and Retriever
+
+    Args:
+        namespace (str):
+            The Pinecone namespace to search for documents
+        folder_path (str):
+            The folder path to load documents from
 
     Returns:
-        (ChatGoogleGenerativeAI, VectorStoreRetriever): The Large Language Model
-            and the Retriever
+        (ChatGoogleGenerativeAI, VectorStoreRetriever):
+            The Large Language Model and the Retriever
     """
 
     # Create an LLM
@@ -301,4 +332,18 @@ def delete_namespace_in_vector_database(namespace: str):
     index([], record_manager, vector_store, cleanup="full", source_id_key="source")
 
     # Delete the namespace in the Pinecone vector database
-    pinecone_index.delete(namespace=namespace, delete_all=True)
+    try:
+        pinecone_index.delete(namespace=namespace, delete_all=True)
+    except NotFoundException as e:
+        logger.error("*" * 100)
+        logger.error(
+            "Continue since namespace not found in Pinecone "
+            "and we are deleting the namespace"
+        )
+        logger.error("*" * 100)
+    except Exception as e:
+        logger.error("*" * 100)
+        logger.error(f"Error deleting namespace in Pinecone: {e}")
+        logger.error(f"Error type: {type(e)}")
+        logger.error("*" * 100)
+        raise e

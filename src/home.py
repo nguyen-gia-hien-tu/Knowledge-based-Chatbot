@@ -24,9 +24,8 @@ def initialize_session_state():
         if key not in st.session_state:
             st.session_state[key] = val
 
-    # Create the Firebase service account file for the
-    # `GOOGLE_APPLICATION_CREDENTIALS` environment variable to point to for the
-    # Google Gemini API
+    # Create the Firebase service account file for the environment variable
+    # `GOOGLE_APPLICATION_CREDENTIALS` to point to - for the Google Gemini API
     with open("firebase-service-account.json", "w") as f:
         f.write(json.dumps(st.secrets["FIREBASE_SERVICE_ACCOUNT"].to_dict()))
 
@@ -152,9 +151,6 @@ def main():
 
     # Initialize Firebase app
     initialize_firebase_app(st.secrets["FIREBASE_SERVICE_ACCOUNT"].to_dict())
-
-    # Initialize Firebase app, setup LLM, vector database and retriever
-    # setup_rag_tools()
 
     authentication_page = st.Page(page=authentication, title="Authentication")
 

@@ -14,33 +14,10 @@ from utils.firebase import (
     get_file_from_storage,
     upload_file_to_storage,
 )
-from utils.rag import setup_embedding, setup_pinecone_index, setup_retriever
+from utils.rag import setup_fresh_retriever
 
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
-
-
-def setup_fresh_retriever():
-    """Set up a fresh retriever by clearing the cache and calling the function again
-
-    Args:
-        _index (_type_): _description_
-        _embedding (_type_): _description_
-    """
-    logger.info("*" * 100)
-    logger.info("Setting up a fresh retriever")
-
-    # Get the Pinecone index and the embedding model
-    index = setup_pinecone_index()
-    embedding = setup_embedding()
-
-    # Clear the cache on the setup_retriever() function to let it run again
-    setup_retriever.clear()
-    setup_retriever(index, embedding, st.session_state["uid"], st.session_state["uid"])
-
-    logger.info("*" * 100)
-    logger.info("Retriever is refreshed")
-    logger.info("*" * 100)
 
 
 def initialize_session_state():
@@ -158,7 +135,7 @@ def delete_file_or_folder(file_or_folder_path: str):
             )
 
         delete_blob_from_storage(file_or_folder_path)
-        setup_fresh_retriever()
+        setup_fresh_retriever(st.session_state["uid"], st.session_state["uid"])
 
         st.rerun()
 
@@ -224,7 +201,7 @@ if submitted and uploaded_file:
 
     # Restart the retriever to include the new file
     try:
-        setup_fresh_retriever()
+        setup_fresh_retriever(st.session_state["uid"], st.session_state["uid"])
         logger.info("*" * 100)
         logger.info(f"File '{uploaded_file.name}' uploaded to Firebase")
         logger.info("*" * 100)
