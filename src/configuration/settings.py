@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     SRC_ROOT: Path = Path(__file__).parent.parent
 
     # Settings for Single Sign-On (SSO) with Google
-    GOOGLE_OIDC_REDIRECT_URI: str = "http://localhost:8080"
+    GOOGLE_OIDC_REDIRECT_URI: str
 
     # Path to the knowledge documents directory
     DOCUMENTS_DIR: str = "documents/"
