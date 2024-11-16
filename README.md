@@ -2,16 +2,30 @@
 
 Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
 
+## Application Link
+
+To access the application, go to
+[https://knowledge-based-chatbot-app.streamlit.app/](https://knowledge-based-chatbot-app.streamlit.app/)
+
+
 ## End-to-End Steps to Setup the Chatbot
 
 
-### Copy `.env.example` to `.env` and `record_manager_cache.db.example` to `record_manager_cache.db`
+### Copy `.streamlit/secrets.toml.example` to `.streamlit/secrets.toml` and `record_manager_cache.db.example` to `record_manager_cache.db`
 
-- Copy and Paste the file `.env.example` and rename the new file to `.env`
+- Copy and Paste the file `.secrets.toml.example` in the `.streamlit/` folder
+  and rename the new file to `.secrets.toml`
 
-- Copy and Paste the file `record_manager_cache.db.example` and rename the new file to `record_manager_cache.db`
+  - This file is used to store the secrets that will be used in the application
 
-- We will modify the file `.env` to store API keys and configuration later on
+- Copy and Paste the file `record_manager_cache.db.example` and rename the new
+  file to `record_manager_cache.db`
+
+  - This file is a cache file for LangChain Indexing API to load data into the
+    vector database
+
+- We will modify the file `.streamlit/secrets.toml` to store API keys and
+  configuration later on
 
 
 ### Create a Firebase Project
@@ -29,23 +43,25 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
   private key"** button to create a new service account
 
 - Download the file to a location of your choice (since we only need the content
-  of the file, not the file location) and copy the content of the file to put it
-  as the value of the `FIREBASE_SERVICE_ACCOUNT` key in the `.env` file
+  of the file, not the file location). Now, copy the value of each key to the
+  corresponding key in the `secrets.toml` file, under the
+  `[FIREBASE_SERVICE_ACCOUNT]` section
 
-  - This `FIREBASE_SERVICE_ACCOUNT` environment variable is used to initialize
-    the Firebase Admin SDK
+  - This `FIREBASE_SERVICE_ACCOUNT` section is used to initialize the Firebase
+    Admin SDK
 
   - It is also used to programmatically create the
     `firebase-service-account.json` file
 
-  - This file is referred by the `GOOGLE_APPLICATION_CREDENTIALS` environment
-    variable, which is used to instantiate the connection for Google Gemini API
+  - The `firebase-service-account.json` file is referred by the
+    `GOOGLE_APPLICATION_CREDENTIALS` environment variable, which is used to
+    instantiate the connection for Google Gemini API
 
 - Now, on the same "Project settings" page, go to the **"General"** tab and
   locate the **"Web API Key"** entry
 
 - Copy the value of this "Web API Key" and put it as the value for the
-  **"FIREBASE_API_KEY"** in the `.env` file
+  **"FIREBASE_API_KEY"** in the `secrets.toml` file
 
 
 ### Create Storage in the Firebase project
@@ -54,9 +70,9 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
 
 - Click on **"Get started"** button to create a bucket
 
-- Copy the bucket name, *excluding* the `gs://` part, but *including* the
+- Copy the bucket name, *excluding* the `gs://` part, while *including* the
   `.appspot.com` part and put it as the value of the
-  `FIREBASE_STORAGE_BUCKET_NAME` in the `.env` file
+  `FIREBASE_STORAGE_BUCKET_NAME` in the `.secrets.toml` file
 
 
 ### Create an OAuth 2.0 Client ID for Google Single-Sign On
@@ -96,11 +112,13 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
   a "Download JSON" button
 
 - Download the file to a location of your choice (since we only need the content
-  of the file, not the file location) and copy the content of the file to put as
-  the value of the `GOOGLE_OIDC_CLIENT_SECRET` key in the `.env` file
+  of the file, not the file location) and copy the value of each key to the
+  corresponding key in the `secrets.toml` file, under the
+  `[GOOGLE_OIDC_CLIENT_SECRET]` section
 
-  - This `GOOGLE_OIDC_CLIENT_SECRET` environment variable is used for the
-    "Sign-in with Google" feature using OAuth2 Flow
+
+  - This `GOOGLE_OIDC_CLIENT_SECRET` is used for the "Sign-in with Google"
+    feature using streamlit-oauth library
 
 - Continue on this credentials page, locate the **"Authorized redirect URIs"**
   section
@@ -111,12 +129,11 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
   - This is the URL with the port number where our Streamlit knowledge-based
     chatbot application locally runs on
 
-  - **_NOTE_:** When deploying to an actual hosting site, we will need to add
-    that URL to the "Authorized redirect URIs" section
+  - **_NOTE_:** When deploying to an actual hosting site, we will also need to
+    add that URL to the "Authorized redirect URIs" section
 
-- Make sure the `GOOGLE_OIDC_REDIRECT_URI` in the `.env` file has the value of
-  `http://localhost:8080` for local development and the actual URL when
-  deploying
+- Make sure the `GOOGLE_OIDC_REDIRECT_URI` in the `.secrets.tml` file has the
+  value of `http://localhost:8080` for local development
 
 
 ### Create a Gemini AI API Key to Call the Gemini Model
@@ -131,8 +148,8 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
 
 - Click the **"Create API key in existing project"** button
 
-- Copy the API key and put it as the value for `GEMINI_API_KEY` in the `.env`
-  file
+- Copy the API key and put it as the value for `GEMINI_API_KEY` in the
+  `.secrets.toml` file
 
 
 ### Create a Pinecone Account to Store Vectors
@@ -160,8 +177,8 @@ Welcome to the knowledge-based chatbot application using the RAG pipeline 🤖
 
 - Select the **"With LangChain"** option and follow the provided steps
 
-- Copy the key-value entries and put them in the `.env` file (i.e., replace the
-  4 keys that start with `LANGCHAIN_` in the `.env` file)
+- Copy the key-value entries and put them in the `.secrets.toml` file (i.e.,
+  replace the 4 keys that start with `LANGCHAIN_` in the `.secrets.toml` file)
 
 
 ### Run the Application
@@ -173,14 +190,14 @@ There are 2 ways to run the application. with or without Docker
   <details>
     <summary>Without Docker</summary>
 
-    To run the application without Docker, you need to install Python 3.12, create
-    a Python virtual environment and run the application with `streamlit`
+    To run the application without Docker, you need to install Python 3.12,
+    create a Python virtual environment and run the application with `streamlit`
 
     #### Install Python 3.12
 
     For the best consistency, please go to the
-    [Python](https://www.python.org/downloads/) download page and download Python
-    version 3.12.
+    [Python](https://www.python.org/downloads/) download page and download
+    Python version 3.12.
 
     #### Install the requirements packages
 
@@ -222,7 +239,9 @@ There are 2 ways to run the application. with or without Docker
 
     #### Install Docker Desktop
 
-    To install Docker, the easiest way is to install Docker Desktop. Please go to the [Docker download](https://docs.docker.com/get-started/get-docker/) page to install Docker Desktop on your machine.
+    To install Docker, the easiest way is to install Docker Desktop. Please go
+    to the [Docker download](https://docs.docker.com/get-started/get-docker/)
+    page to install Docker Desktop on your machine.
 
     #### Install Docker Compose
 
@@ -232,7 +251,8 @@ There are 2 ways to run the application. with or without Docker
 
     #### Run the application with Docker
 
-    - To run the application with Docker, run the following command at the root of the respository (where you see the `src/` folder)
+    - To run the application with Docker, run the following command at the root
+      of the respository (where you see the `src/` folder)
 
       ```bash
       docker compose up -d --build
