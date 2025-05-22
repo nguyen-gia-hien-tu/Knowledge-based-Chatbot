@@ -2,16 +2,16 @@ ipykernel
 ipywidgets
 
 # LangChain
-langchain
-langchain-community
-langchain-text-splitters
-langchain-google-genai
-langchain-huggingface
-pypdf
+langchain == 0.3.13
+langchain-community == 0.3.13
+langchain-text-splitters == 0.3.3
+langchain-google-genai == 2.0.7
+langchain-huggingface == 0.1.2
+pypdf == 5.1.0
 
 # Vector Index
-langchain-pinecone
-pinecone-notebooks
+langchain-pinecone == 0.2.0
+pinecone-notebooks == 0.1.1
 torch
 
 # Web App Development
